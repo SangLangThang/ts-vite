@@ -33,6 +33,11 @@ const api = {
     ipcRenderer.on('player:party-update', handler)
     return handler
   },
+  onPlayerPetBattleUpdate: (callback: (data: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('player:petBattle-update', handler)
+    return handler
+  },
   // Remove listeners
   removePlayerConnectedListener: () => {
     ipcRenderer.removeAllListeners('player:connected')
@@ -69,6 +74,13 @@ const api = {
       ipcRenderer.removeListener('player:party-update', handler)
     } else {
       ipcRenderer.removeAllListeners('player:party-update')
+    }
+  },
+  removePlayerPetBattleUpdateListener: (handler?: any) => {
+    if (handler) {
+      ipcRenderer.removeListener('player:petBattle-update', handler)
+    } else {
+      ipcRenderer.removeAllListeners('player:petBattle-update')
     }
   },
   requestPlayerBag: (playerId: number) => {

@@ -48,8 +48,19 @@ export function BasicComponent({
       console.log('handlePartyUpdate', data);
     };
 
+    // Listen for pet battle updates - auto-select the battling pet
+    const handlePetBattleUpdate = (data: { id: number; petBattle: number }) => {
+      if (selectedPlayerId && data.id === selectedPlayerId) {
+        if (data.petBattle > 0) {
+          // petBattle is 1-based (1-4), convert to 0-based index (0-3)
+          setSelectedPetIndex(data.petBattle - 1);
+        }
+      }
+    };
+
     const equipHandler = window.api.onPlayerEquipmentUpdate?.(handleEquipmentUpdate);
     const partyHandler = window.api.onPlayerPartyUpdate?.(handlePartyUpdate);
+    const petBattleHandler = window.api.onPlayerPetBattleUpdate?.(handlePetBattleUpdate);
 
     // Request current equipment and party data
     window.api.requestPlayerEquipment?.(selectedPlayerId);
@@ -61,6 +72,9 @@ export function BasicComponent({
       }
       if (partyHandler) {
         window.api.removePlayerPartyUpdateListener?.(partyHandler);
+      }
+      if (petBattleHandler) {
+        window.api.removePlayerPetBattleUpdateListener?.(petBattleHandler);
       }
     };
   }, [selectedPlayerId]);

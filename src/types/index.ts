@@ -49,6 +49,7 @@ export interface ClientBot {
   battle: number; // Battle state flag (0 = not in battle, 1 = in battle)
   party: PartyInfo; // Party information
   battleSkillConfig?: BattleSkillConfig; // Battle skill configuration
+  petBattle?: number;
 }
 
 export interface ClientSocket {

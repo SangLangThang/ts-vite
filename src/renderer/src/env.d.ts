@@ -10,6 +10,7 @@ interface API {
   onPlayerEquipmentUpdate: (callback: (data: any) => void) => any
   onPlayerBattleUpdate: (callback: (data: any) => void) => any
   onPlayerPartyUpdate: (callback: (data: any) => void) => any
+  onPlayerPetBattleUpdate: (callback: (data: any) => void) => any
   removePlayerConnectedListener: () => void
   removePlayerLoginListener: () => void
   removePlayerListUpdateListener: () => void
@@ -17,6 +18,7 @@ interface API {
   removePlayerEquipmentUpdateListener: (handler?: any) => void
   removePlayerBattleUpdateListener: (handler?: any) => void
   removePlayerPartyUpdateListener: (handler?: any) => void
+  removePlayerPetBattleUpdateListener: (handler?: any) => void
   requestPlayerBag: (playerId: number) => void
   requestPlayerEquipment: (playerId: number) => void
   requestPlayerBattle: (playerId: number) => void

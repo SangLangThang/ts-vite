@@ -707,8 +707,46 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
   } catch (error) {}
 }
 
-function checkDataPetBattle(_A_0: any, _remotePort: any) {
-  // TODO: Implement checkDataPetBattle
+function checkDataPetBattle(A_0: number[], remotePort: number) {
+  const find = remotePorts.find((e) => e[1] == remotePort);
+  if (!find) return;
+  const account = clients[find[0]];
+  if (!account) return;
+
+  try {
+    const b = A_0[5];
+
+    if (b === 2) {
+      // Pet battle ended
+      account.petBattle = 0;
+
+      // Send update to renderer
+      rendererSend('player:petBattle-update', {
+        id: find[0],
+        petBattle: 0
+      });
+      return;
+    }
+
+    // Parse the pet ID from the packet
+    const petId = API.hexToInt32(API.byteToHexstring([A_0[6], A_0[7]]));
+
+    // Find which pet slot (1-4) matches this ID
+    const petIndex = account.pets.findIndex((pet) => pet._Id === petId);
+
+    if (petIndex !== -1) {
+      // Store 1-based index (1-4) for pet battle
+      account.petBattle = petIndex + 1;
+
+      // Send update to renderer
+      rendererSend('player:petBattle-update', {
+        id: find[0],
+        petBattle: account.petBattle
+      });
+    }
+  } catch (error) {
+    // Ignore errors
+  }
 }
 
 function checkDialog(_A_0: any, _remotePort: any) {
