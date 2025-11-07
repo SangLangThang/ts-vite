@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+        .item-display {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .item-image {
+            border: 2px solid #ddd;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .item-image img {
+            max-width: 400px;
+            height: auto;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .info-row {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Item Viewer</h1>
+
+        <div class="controls">
+            <label for="itemSelect">Select Item: </label>
+            <select id="itemSelect">
+                <option value="">-- Select an item --</option>
+            </select>
+        </div>
+
+        <div id="itemDisplay" class="item-display" style="display: none;">
+            <div class="item-image">
+                <img id="itemImage" src="" alt="Item image">
+            </div>
+            <div class="item-info">
+                <div class="info-row">
+                    <span class="info-label">ID:</span>
+                    <span id="itemId"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Type:</span>
+                    <span id="itemType"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Size:</span>
+                    <span id="itemSize"></span> bytes
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemsData = [];
+
+        // Load the JSON data
+        fetch('items-data.json')
+            .then(response => response.json())
+            .then(data => {
+                itemsData = data;
+                populateSelect();
+            })
+            .catch(error => {
+                console.error('Error loading items:', error);
+                alert('Error loading items-data.json');
+            });
+
+        function populateSelect() {
+            const select = document.getElementById('itemSelect');
+
+            // Filter items with valid ID and photo data
+            const validItems = itemsData.filter(item => item._id > 0 && item._len > 0);
+
+            validItems.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item._id;
+                option.textContent = `ID ${item._id} (Type: ${item._type}, Size: ${item._len} bytes)`;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', function() {
+                const selectedId = parseInt(this.value);
+                if (selectedId) {
+                    displayItem(selectedId);
+                } else {
+                    document.getElementById('itemDisplay').style.display = 'none';
+                }
+            });
+        }
+
+        function displayItem(itemId) {
+            const item = itemsData.find(i => i._id === itemId);
+
+            if (item) {
+                // Create data URL
+                const dataUrl = `data:image/png;base64,${item._photo}`;
+
+                // Update display
+                document.getElementById('itemImage').src = dataUrl;
+                document.getElementById('itemId').textContent = item._id;
+                document.getElementById('itemType').textContent = item._type;
+                document.getElementById('itemSize').textContent = item._len;
+
+                document.getElementById('itemDisplay').style.display = 'flex';
+            }
+        }
+    </script>
+</body>
+</html>
