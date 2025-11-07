@@ -1,6 +1,6 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils';
 import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
-import { createProxy, TcpProxy } from 'node-tcp-proxy';
+import { createProxy, TcpProxy, UpstreamContext } from 'node-tcp-proxy';
 import { join } from 'path';
 import { writeFileSync, readFileSync } from 'fs';
 import icon from '../../resources/icon.png?asset';
@@ -107,8 +107,6 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  ipcMain.on('ping', () => console.log('pong'));
-
   // Handle bag data request
   ipcMain.on('player:request-bag', (_event, playerId: number) => {
     const client = getClient(playerId);
@@ -171,9 +169,32 @@ app.whenReady().then(() => {
     }
   });
 
+  // Handle party invite
+  ipcMain.on('party:invite-members', (_event, data: { playerId: number; partyConfig: any }) => {
+    const leaderClient = getClient(data.playerId);
+
+    if (!leaderClient || !leaderClient.socket.context) {
+      console.error('[IPC] Leader client not found or no context');
+      return;
+    }
+
+    const { member1Id, member2Id, member3Id, member4Id } = data.partyConfig;
+    const memberIds = [member1Id, member2Id, member3Id, member4Id].filter((id) => id > 0);
+
+    // Send invite packets to each member
+    memberIds.forEach((memberId, index) => {
+      const memberClient = getClient(memberId);
+      if (memberClient && memberClient.socket.context) {
+        const packet = API.joinToParty(data.playerId);
+        sendPacketWithDelay(memberClient.socket.context, packet, index * 500);
+      } else {
+        console.warn(`[IPC] Member ${memberId} client not found or no context`);
+      }
+    });
+  });
+
   // Handle config save
   ipcMain.handle('config:save', async (_event, config: any) => {
-    console.log('config', config);
     try {
       const { filePath } = await dialog.showSaveDialog({
         title: 'Save Configuration',
@@ -203,7 +224,6 @@ app.whenReady().then(() => {
       if (filePaths && filePaths.length > 0) {
         const data = readFileSync(filePaths[0], 'utf-8');
         const config = JSON.parse(data);
-
         // Apply config to all clients
         Object.keys(config).forEach((playerIdStr) => {
           const playerId = parseInt(playerIdStr);
@@ -248,6 +268,14 @@ app.whenReady().then(() => {
   createWindow();
   createProxyLocal();
 });
+
+export function sendPacketWithDelay(context?: UpstreamContext, data?: string, time = 0) {
+  if (!context || !data) return;
+
+  setTimeout(() => {
+    (proxyLocal as any).handleUpstreamData(context, Buffer.from(API.hexStringToByte(data)));
+  }, time);
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

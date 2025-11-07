@@ -1,33 +1,17 @@
 import { UpstreamContext } from 'node-tcp-proxy';
 
+export interface PartyConfig {
+  member1Id: number;
+  member2Id: number;
+  member3Id: number;
+  member4Id: number;
+  qsMemberIndex: number;
+  leaderId: number;
+}
+
 export interface PlayerConfig {
-  partyConfig: {
-    member1Id: number;
-    member2Id: number;
-    member3Id: number;
-    member4Id: number;
-    qsMemberIndex: number;
-    leaderId: number;
-  };
-  battleSkillConfig: {
-    changeGemChar: boolean;
-    hoisinhChar: boolean;
-    autoAttack: boolean;
-    skillNormalChar: number;
-    skillSoloChar: number;
-    skillSpecialChar: number;
-    skillCCChar: number;
-    skillBuffChar: number;
-    skillClearChar: number;
-    changeGemPet: boolean;
-    hoisinhPet: boolean;
-    skillNormalPet: number;
-    skillSoloPet: number;
-    skillSpecialPet: number;
-    skillCCPet: number;
-    skillBuffPet: number;
-    skillClearPet: number;
-  };
+  partyConfig: PartyConfig;
+  battleSkillConfig: BattleSkillConfig;
 }
 
 export interface BattleSkillConfig {

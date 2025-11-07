@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { SkillDropdown } from './SkillDropdown';
 
 interface BattleSkillConfig {
@@ -24,16 +25,47 @@ interface BattleSkillConfig {
 }
 
 interface BattleSkillsProps {
-  config: BattleSkillConfig;
+  initialConfig?: BattleSkillConfig;
   onConfigChange: (config: BattleSkillConfig) => void;
 }
 
-export function BattleSkills({ config, onConfigChange }: BattleSkillsProps) {
-  const handleSkillChange = (field: keyof BattleSkillConfig, value: string | boolean) => {
-    onConfigChange({
+export function BattleSkills({ initialConfig, onConfigChange }: BattleSkillsProps) {
+  const [config, setConfig] = useState<BattleSkillConfig>(
+    initialConfig || {
+      changeGemChar: false,
+      hoisinhChar: false,
+      autoAttack: false,
+      skillNormalChar: 99999,
+      skillSoloChar: 99999,
+      skillSpecialChar: 99999,
+      skillCCChar: 99999,
+      skillBuffChar: 99999,
+      skillClearChar: 99999,
+      changeGemPet: false,
+      hoisinhPet: false,
+      skillNormalPet: 99999,
+      skillSoloPet: 99999,
+      skillSpecialPet: 99999,
+      skillCCPet: 99999,
+      skillBuffPet: 99999,
+      skillClearPet: 99999
+    }
+  );
+
+  // Sync with initial config when it changes
+  useEffect(() => {
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
+
+  const handleSkillChange = (field: keyof BattleSkillConfig, value: number | boolean) => {
+    const newConfig = {
       ...config,
       [field]: value
-    });
+    };
+    setConfig(newConfig);
+    onConfigChange(newConfig);
   };
 
   return (

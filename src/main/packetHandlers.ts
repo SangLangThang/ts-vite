@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { sendPacketWithDelay } from '.';
 import API from '../helpers/API';
-import { clients, getListPlayer } from '../store/clients';
-import { rendererSend } from './renderer';
 import { DATA_BATTLE_PET, DATA_ITEM } from '../helpers/constant2';
+import { clients, getListPlayer } from '../store/clients';
 import { ClientBot } from '../types';
+import { rendererSend } from './renderer';
 
 export const remotePorts: [number, number | null][] = [];
 
@@ -351,8 +353,6 @@ function checkBattle(A_0: number[], remotePort: number) {
                 _Statuses: existingStatuses
               };
 
-              //console.log(account.battleInfo[battleIndex]);
-
               // Send battle update to renderer
               rendererSend('player:battle-update', {
                 id: find[0],
@@ -406,7 +406,6 @@ function checkBattle(A_0: number[], remotePort: number) {
             const num9 = A_0[23]; // Element
 
             const location = getLocation2(a_);
-            console.log('location', location);
             if (location) {
               const battleIndex = location - 1;
               if (battleIndex >= 0) {
@@ -431,7 +430,6 @@ function checkBattle(A_0: number[], remotePort: number) {
               account.charCol = array[13];
               account.battle = 1;
               account.turn = 0;
-              console.log('Battle started for player', account.player._Id);
             }
 
             text = text.replace(text2, '');
@@ -456,8 +454,8 @@ function checkBattle(A_0: number[], remotePort: number) {
         }
         break;
     }
-  } catch (error) {
-    console.error('Error in checkBattle:', error);
+  } catch {
+    // Ignore battle packet errors
   }
 }
 
@@ -475,19 +473,18 @@ function checkParty(A_0: number[], remotePort: number) {
 
     switch (caseType) {
       case 1: {
-        // Party invite received
-        const inviterId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
-        console.log(`[checkParty] Case 1: Party invite from player ${inviterId}`);
+        // Party invite received (member wants to join your party)
+        const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
 
-        // Check if inviter is one of the configured members
+        // Check if this member is in your configured member list (you are the leader)
         if (
-          inviterId === account.party.member1Id ||
-          inviterId === account.party.member2Id ||
-          inviterId === account.party.member3Id ||
-          inviterId === account.party.member4Id
+          memberId === account.party.member1Id ||
+          memberId === account.party.member2Id ||
+          memberId === account.party.member3Id ||
+          memberId === account.party.member4Id
         ) {
-          console.log(`[checkParty] Auto-accepting party from configured member ${inviterId}`);
-          // TODO: Send accept party packet
+          const packet = API.leaderAcceptedPartyFrom(memberId);
+          sendPacketWithDelay(account.socket.context, packet, 0);
         }
         break;
       }
@@ -495,7 +492,6 @@ function checkParty(A_0: number[], remotePort: number) {
       case 4: {
         // Member left party
         const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
-        console.log(`[checkParty] Case 4: Member ${memberId} left party`);
 
         // Clear the member from current party
         if (memberId === account.party.currentMember1) {
@@ -507,10 +503,8 @@ function checkParty(A_0: number[], remotePort: number) {
         } else if (memberId === account.party.currentMember4) {
           account.party.currentMember4 = 0;
         } else if (memberId === account.party.leaderId) {
-          console.log(`[checkParty] Leader ${memberId} left party`);
           account.party.currentPartyId = 0;
         } else if (memberId === account.player._Id) {
-          console.log('[checkParty] You were removed from party');
           account.party.currentPartyId = 0;
         }
 
@@ -529,22 +523,17 @@ function checkParty(A_0: number[], remotePort: number) {
         // Member joined party
         const leaderId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
         const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(20, 28));
-        console.log(`[checkParty] Case 5: Member ${memberId} joined party led by ${leaderId}`);
 
         if (account.player._Id === leaderId) {
           // Add member to appropriate slot
           if (memberId === account.party.member1Id) {
             account.party.currentMember1 = memberId;
-            console.log(`[checkParty] Member 1 (${memberId}) joined`);
           } else if (memberId === account.party.member2Id) {
             account.party.currentMember2 = memberId;
-            console.log(`[checkParty] Member 2 (${memberId}) joined`);
           } else if (memberId === account.party.member3Id) {
             account.party.currentMember3 = memberId;
-            console.log(`[checkParty] Member 3 (${memberId}) joined`);
           } else if (memberId === account.party.member4Id) {
             account.party.currentMember4 = memberId;
-            console.log(`[checkParty] Member 4 (${memberId}) joined`);
           }
 
           account.party.partyFull = checkPartyFull(account);
@@ -553,7 +542,6 @@ function checkParty(A_0: number[], remotePort: number) {
           if (account.party.currentPartyId === 0) {
             account.party.currentPartyId = leaderId;
           }
-          console.log(`[checkParty] You joined party led by ${leaderId}`);
         }
 
         // Send update to renderer
@@ -567,23 +555,19 @@ function checkParty(A_0: number[], remotePort: number) {
       case 9: {
         // Party invite sent confirmation
         const targetId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
-        console.log(`[checkParty] Case 9: Party invite sent to ${targetId}`);
 
         // Check if this is the configured leader accepting your invite
         if (targetId === account.party.leaderId) {
-          console.log(`[checkParty] Auto-accepting party from leader ${targetId}`);
           // TODO: Send accept party packet
         }
         break;
       }
 
       default:
-        console.log(`[checkParty] Unknown case: ${caseType}`);
+        //console.log(`[checkParty] Unknown case: ${caseType}`);
         break;
     }
-  } catch (error) {
-    console.error('[checkParty] Error:', error);
-  }
+  } catch (error) {}
 }
 
 // Helper function to check if party is full
@@ -720,9 +704,7 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
         break;
       }
     }
-  } catch (error) {
-    console.error('Error parsing pet data:', error);
-  }
+  } catch (error) {}
 }
 
 function checkDataPetBattle(_A_0: any, _remotePort: any) {
@@ -747,9 +729,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
         const num16 = API.hexToInt32(text.substring(0, 4));
         // Data_ItemOnMaps[num16 - 1] = default(_Data._ItemOnMap);
         // TODO: Implement item on map tracking if needed
-      } catch (error) {
-        console.error('Error in case 2:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -761,9 +741,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
         const mapX = API.hexToInt32(text6.substring(4, 4));
         const mapY = API.hexToInt32(text6.substring(8, 4));
         // TODO: Implement item on map tracking if needed
-      } catch (error) {
-        console.error('Error in case 3:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -772,9 +750,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
       try {
         const text4 = API.byteToHexstring(A_0).substring(12);
         // Empty processing in original code
-      } catch (error) {
-        console.error('Error in case 4:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1051,9 +1027,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
-      } catch (error) {
-        console.error('Error in case 7:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1100,9 +1074,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
-      } catch (error) {
-        console.error('Error in case 16:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1169,9 +1141,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
-      } catch (error) {
-        console.error('Error in case 17:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1182,7 +1152,6 @@ function checkDataBag(A_0: number[], remotePort: number) {
         const num29 = A_0[7]; // equipment slot (1-6)
         const stt8 = A_0[8]; // bag slot (1-based)
         const bagIndex = stt8 - 1;
-        console.log(num28, num29, stt8, bagIndex);
 
         if (
           num28 >= 0 &&
@@ -1191,7 +1160,6 @@ function checkDataBag(A_0: number[], remotePort: number) {
           bagIndex < account.tuido.length
         ) {
           const pet = account.pets[num28 - 1];
-          console.log('pet', pet);
           let itemId = 0;
 
           // Get item from pet equipment slot
@@ -1228,11 +1196,8 @@ function checkDataBag(A_0: number[], remotePort: number) {
               break;
           }
 
-          console.log('itemId', itemId);
-
           if (itemId > 0) {
             const findItem = DATA_ITEM.find((e) => e[0] === itemId);
-            console.log(findItem);
             account.tuido[bagIndex] = {
               _Stt: stt8,
               _Id: itemId,
@@ -1257,9 +1222,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
-      } catch (error) {
-        console.error('Error in case 22:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1350,9 +1313,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
-      } catch (error) {
-        console.error('Error in case 23:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1406,9 +1367,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           charEquip: account.charEquip,
           pets: account.pets
         });
-      } catch (error) {
-        console.error('Error in case 24:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1427,9 +1386,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           charEquip: account.charEquip,
           pets: account.pets
         });
-      } catch (error) {
-        console.error('Error in case 27:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1473,9 +1430,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           charEquip: account.charEquip,
           pets: account.pets
         });
-      } catch (error) {
-        console.error('Error in case 28:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1486,9 +1441,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
         const num15 = (A_0[6] << 24) | (A_0[7] << 16) | (A_0[8] << 8) | A_0[9];
         // TODO: Implement shopping list tracking if needed
         //console.log('Shopping list flag:', num15);
-      } catch (error) {
-        console.error('Error in case 31:', error);
-      }
+      } catch (error) {}
       break;
     }
 
@@ -1721,9 +1674,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           charEquip: account.charEquip,
           pets: account.pets
         });
-      } catch (error) {
-        console.error('Error parsing character equipment:', error);
-      }
+      } catch (error) {}
       break;
     }
   }
@@ -1889,14 +1840,11 @@ function checkInfoInBattle(A_0: number[], remotePort: number) {
     // Log battle messages
     if (text2.length > 0) {
       if (num2 === 2 || num2 === 4 || num2 === 9) {
-        console.log('[Battle Info - Player]', text2);
       } else {
-        console.log('[Battle Info - NPC]', text2);
       }
     }
 
     if (num > 1) {
-      console.log('[Battle Info] Combo x', num);
     }
 
     // Send battle update to renderer
@@ -1906,9 +1854,7 @@ function checkInfoInBattle(A_0: number[], remotePort: number) {
       turn: account.turn,
       battle: account.battle
     });
-  } catch (error) {
-    console.error('Error in checkInfoInBattle:', error);
-  }
+  } catch (error) {}
 }
 
 // Helper function to get skill SP cost
@@ -2070,7 +2016,5 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
         //console.log(`[checkRemoveCC] Unknown case: ${caseType}`);
         break;
     }
-  } catch (error) {
-    console.error('[checkRemoveCC] Error:', error);
-  }
+  } catch (error) {}
 }

@@ -1,0 +1,756 @@
+{
+  "10276": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 10280
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 13031,
+      "skillSoloChar": 13029,
+      "skillSpecialChar": 13015,
+      "skillCCChar": 13029,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12025,
+      "skillSoloPet": 12025,
+      "skillSpecialPet": 12025,
+      "skillCCPet": 12025,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "10277": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 10280
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "10278": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 10280
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "10279": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 10280
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 14037,
+      "skillSoloChar": 10006,
+      "skillSpecialChar": 10016,
+      "skillCCChar": 14037,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 21030,
+      "skillSoloPet": 21030,
+      "skillSpecialPet": 21030,
+      "skillCCPet": 99999,
+      "skillBuffPet": 14013,
+      "skillClearPet": 99999
+    }
+  },
+  "10280": {
+    "partyConfig": {
+      "member1Id": 10277,
+      "member2Id": 10278,
+      "member3Id": 10276,
+      "member4Id": 10279,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 11034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 11034,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "10588": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 25360
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": true,
+      "autoAttack": false,
+      "skillNormalChar": 14037,
+      "skillSoloChar": 10027,
+      "skillSpecialChar": 10016,
+      "skillCCChar": 10004,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 21003,
+      "skillSoloPet": 21003,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 12025,
+      "skillClearPet": 99999
+    }
+  },
+  "10589": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 25360
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 13031,
+      "skillSoloChar": 13031,
+      "skillSpecialChar": 13015,
+      "skillCCChar": 10004,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 21030,
+      "skillSoloPet": 21030,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 14013,
+      "skillClearPet": 99999
+    }
+  },
+  "11469": {
+    "partyConfig": {
+      "member1Id": 11473,
+      "member2Id": 23954,
+      "member3Id": 23955,
+      "member4Id": 23956,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 10034,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 99999,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "11473": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 11469
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 10034,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 99999,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "11475": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 10010,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 14013,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "11478": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 23957
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 10032,
+      "skillSoloChar": 14037,
+      "skillSpecialChar": 10016,
+      "skillCCChar": 10004,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 14013,
+      "skillSoloPet": 14013,
+      "skillSpecialPet": 14013,
+      "skillCCPet": 14013,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23954": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 11469
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 99999,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23955": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 11469
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 99999,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23956": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 11469
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 99999,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 99999,
+      "skillSoloPet": 99999,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23957": {
+    "partyConfig": {
+      "member1Id": 23958,
+      "member2Id": 23959,
+      "member3Id": 23961,
+      "member4Id": 11478,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12034,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23958": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 23957
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23959": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 23957
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "23961": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 23957
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 13031,
+      "skillSoloChar": 13029,
+      "skillSpecialChar": 13015,
+      "skillCCChar": 13029,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12025,
+      "skillSoloPet": 12025,
+      "skillSpecialPet": 12025,
+      "skillCCPet": 12025,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "25360": {
+    "partyConfig": {
+      "member1Id": 25361,
+      "member2Id": 25362,
+      "member3Id": 10588,
+      "member4Id": 10589,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12034,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "25361": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 25360
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "25362": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 25360
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12034,
+      "skillSoloChar": 11021,
+      "skillSpecialChar": 12016,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12033,
+      "skillSoloPet": 12033,
+      "skillSpecialPet": 12016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "26862": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 26879
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12032,
+      "skillSoloChar": 13026,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 12032,
+      "skillSoloPet": 12032,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "26866": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 26879
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 13029,
+      "skillSoloChar": 13029,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 14013,
+      "skillSoloPet": 14013,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "26869": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 26879
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12032,
+      "skillSoloChar": 11003,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 13031,
+      "skillSoloPet": 13031,
+      "skillSpecialPet": 13015,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "26879": {
+    "partyConfig": {
+      "member1Id": 26869,
+      "member2Id": 26889,
+      "member3Id": 26862,
+      "member4Id": 26866,
+      "qsMemberIndex": 1,
+      "leaderId": 0
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 12032,
+      "skillSoloChar": 13026,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 10034,
+      "skillSoloPet": 10034,
+      "skillSpecialPet": 10016,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  },
+  "26889": {
+    "partyConfig": {
+      "member1Id": 0,
+      "member2Id": 0,
+      "member3Id": 0,
+      "member4Id": 0,
+      "qsMemberIndex": 1,
+      "leaderId": 26879
+    },
+    "battleSkillConfig": {
+      "changeGemChar": false,
+      "hoisinhChar": false,
+      "autoAttack": false,
+      "skillNormalChar": 10028,
+      "skillSoloChar": 10028,
+      "skillSpecialChar": 99999,
+      "skillCCChar": 99999,
+      "skillBuffChar": 99999,
+      "skillClearChar": 99999,
+      "changeGemPet": false,
+      "hoisinhPet": false,
+      "skillNormalPet": 11034,
+      "skillSoloPet": 11034,
+      "skillSpecialPet": 99999,
+      "skillCCPet": 99999,
+      "skillBuffPet": 99999,
+      "skillClearPet": 99999
+    }
+  }
+}

@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Player } from 'src/types';
 
 interface AccountListProps {
-  selectedPlayer: Player | null;
-  onSelectPlayer: (player: Player) => void;
+  selectedPlayerId: number | null;
+  onSelectPlayer: (playerId: number) => void;
 }
 
 export function AccountList({
-  selectedPlayer,
+  selectedPlayerId,
   onSelectPlayer
 }: AccountListProps): React.JSX.Element {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -17,10 +17,10 @@ export function AccountList({
     window.api.onPlayerListUpdate((data: { listPlayer: Player[] }) => {
       setPlayers(data.listPlayer);
 
-      // Auto-select first player if no player is selected - use setTimeout to avoid setState during render
-      if (data.listPlayer.length > 0 && !selectedPlayer) {
+      // Auto-select first player if no player is selected
+      if (data.listPlayer.length > 0 && !selectedPlayerId) {
         setTimeout(() => {
-          onSelectPlayer(data.listPlayer[0]);
+          onSelectPlayer(data.listPlayer[0]._Id);
         }, 0);
       }
     });
@@ -36,13 +36,6 @@ export function AccountList({
         }
         return prev;
       });
-
-      // Update selected player if it's the one that was updated - use setTimeout to avoid setState during render
-      if (selectedPlayer && selectedPlayer._Id === data.player._Id) {
-        setTimeout(() => {
-          onSelectPlayer(data.player);
-        }, 0);
-      }
     });
 
     // Cleanup listeners on unmount
@@ -50,7 +43,7 @@ export function AccountList({
       window.api.removePlayerListUpdateListener?.();
       window.api.removePlayerLoginListener?.();
     };
-  }, [selectedPlayer, onSelectPlayer]);
+  }, [selectedPlayerId, onSelectPlayer]);
 
   const getStatus = (player: Player): string => {
     if (player._PlayerOnline === 1) {
@@ -79,9 +72,9 @@ export function AccountList({
             {players.map((player) => (
               <div
                 key={player._Id}
-                onClick={() => onSelectPlayer(player)}
+                onClick={() => onSelectPlayer(player._Id)}
                 className={`flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors cursor-pointer ${
-                  selectedPlayer?._Id === player._Id ? 'bg-blue-100' : ''
+                  selectedPlayerId === player._Id ? 'bg-blue-100' : ''
                 }`}
               >
                 <div className="flex-1 min-w-0">

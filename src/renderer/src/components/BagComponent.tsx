@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Luulang, Player, Tuideo, Tuido } from 'src/types';
+import { Luulang, Tuideo, Tuido } from 'src/types';
 
 interface BagComponentProps {
-  selectedPlayer: Player | null;
+  selectedPlayerId: number | null;
 }
 
 // Helper to get item image path
@@ -11,7 +11,7 @@ const getItemImagePath = (itemId: number): string => {
   return `/items/item_${itemId}.png`;
 };
 
-export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.Element {
+export function BagComponent({ selectedPlayerId }: BagComponentProps): React.JSX.Element {
   const [tuido, setTuido] = useState<Tuido[]>([]);
   const [tuideo, setTuideo] = useState<Tuideo[]>([]);
   const [luulang, setLuulang] = useState<Luulang[]>([]);
@@ -22,7 +22,7 @@ export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.E
     setTuideo([]);
     setLuulang([]);
 
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
 
     // Listen for bag updates
     const handleBagUpdate = (data: {
@@ -31,7 +31,7 @@ export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.E
       tuideo?: Tuideo[];
       luulang?: Luulang[];
     }) => {
-      if (selectedPlayer && data.id === selectedPlayer._Id) {
+      if (selectedPlayerId && data.id === selectedPlayerId) {
         if (data.tuido) {
           setTuido(data.tuido);
         }
@@ -47,14 +47,14 @@ export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.E
     const handler = window.api.onPlayerBagUpdate(handleBagUpdate);
 
     // Request current bag data for the selected player
-    window.api.requestPlayerBag(selectedPlayer._Id);
+    window.api.requestPlayerBag(selectedPlayerId);
 
     return () => {
       window.api.removePlayerBagUpdateListener(handler);
     };
-  }, [selectedPlayer]);
+  }, [selectedPlayerId]);
 
-  if (!selectedPlayer) {
+  if (!selectedPlayerId) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-gray-400">No player selected</p>
@@ -75,7 +75,7 @@ export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.E
                 key={index}
                 className={`relative border-2 rounded-md aspect-square flex items-center justify-center ${
                   item._Id > 0
-                    ? 'border-gray-400 bg-gradient-to-b from-gray-100 to-gray-200 hover:border-blue-500 cursor-pointer'
+                    ? 'border-gray-400 from-gray-100 to-gray-200 hover:border-blue-500 cursor-pointer'
                     : 'border-gray-300 bg-gray-100'
                 }`}
                 title={item._Id > 0 ? `ID: ${item._Id}${item._Name ? `\n${item._Name}` : ''}` : ''}
@@ -118,7 +118,7 @@ export function BagComponent({ selectedPlayer }: BagComponentProps): React.JSX.E
         {renderItemGrid(luulang, 'Lưu lang')}
 
         {/* Tuideo (Wardrobe) - 5x5 grid */}
-        {renderItemGrid(tuideo, 'Tủ đồ')}
+        {renderItemGrid(tuideo, 'Túi đeo')}
       </div>
 
       {/* Right side: Tuido (Bag) */}

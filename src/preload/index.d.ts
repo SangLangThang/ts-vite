@@ -20,6 +20,7 @@ interface API {
   requestPlayerBattle: (playerId: number) => void
   requestPlayerParty: (playerId: number) => void
   updatePlayerParty: (playerId: number, party: any) => void
+  invitePartyMembers: (playerId: number, partyConfig: any) => void
   saveConfig: (config: any) => Promise<{ success: boolean; filePath?: string; message?: string }>
   loadConfig: () => Promise<{ success: boolean; config?: any; message?: string }>
 }

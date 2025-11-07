@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Battleinfo, Player } from '../types';
+import { Battleinfo } from '../types';
 
 interface CombatComponentProps {
-  selectedPlayer: Player | null;
+  selectedPlayerId: number | null;
 }
 
-export function CombatComponent({ selectedPlayer }: CombatComponentProps): React.JSX.Element {
+export function CombatComponent({ selectedPlayerId }: CombatComponentProps): React.JSX.Element {
   const [battleInfo, setBattleInfo] = useState<(Battleinfo | null)[]>([]);
   const [turn, setTurn] = useState<number>(0);
 
   useEffect(() => {
-    if (!selectedPlayer) {
+    if (!selectedPlayerId) {
       setBattleInfo([]);
       setTurn(0);
       return;
     }
 
     // Request battle info when player changes
-    window.api.requestPlayerBattle(selectedPlayer._Id);
+    window.api.requestPlayerBattle(selectedPlayerId);
 
     // Listen for battle updates
     const handler = window.api.onPlayerBattleUpdate(
       (data: { id: number; battleInfo: (Battleinfo | null)[]; turn: number; battle: number }) => {
-        if (data.id === selectedPlayer._Id) {
+        if (data.id === selectedPlayerId) {
           setBattleInfo(data.battleInfo || []);
           setTurn(data.turn || 0);
         }
@@ -32,7 +32,7 @@ export function CombatComponent({ selectedPlayer }: CombatComponentProps): React
     return () => {
       window.api.removePlayerBattleUpdateListener(handler);
     };
-  }, [selectedPlayer]);
+  }, [selectedPlayerId]);
 
   // Create 4 rows with 5 columns each
   // Position layout:
@@ -137,7 +137,7 @@ export function CombatComponent({ selectedPlayer }: CombatComponentProps): React
   // Check if there's any battle data
   const hasBattleData = battleInfo.some((entity) => entity !== null && entity !== undefined);
 
-  if (!selectedPlayer) {
+  if (!selectedPlayerId) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400">
         Select a player to view battle info

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Player, PlayerConfig } from 'src/types';
+import { PlayerConfig } from 'src/types';
 import { AccountList } from './components/AccountList';
 import { ConfigMenu } from './components/ConfigMenu';
 import { ContentTabs } from './components/ContentTabs';
@@ -9,11 +9,12 @@ interface AllConfigs {
 }
 
 function App(): React.JSX.Element {
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [playerConfigs, setPlayerConfigs] = useState<AllConfigs>({});
   const [configVersion, setConfigVersion] = useState(0); // Used to force re-render
 
   const handleSave = async () => {
+    console.log('playerConfigs', playerConfigs)
     try {
       const result = await window.api.saveConfig(playerConfigs);
       if (result.success) {
@@ -42,13 +43,18 @@ function App(): React.JSX.Element {
   };
 
   const updatePlayerConfig = useCallback((playerId: number, config: Partial<PlayerConfig>) => {
-    setPlayerConfigs((prev) => ({
-      ...prev,
-      [playerId]: {
-        ...prev[playerId],
-        ...config
-      }
-    }));
+    console.log('App - updatePlayerConfig called with playerId:', playerId, 'config:', config);
+    setPlayerConfigs((prev) => {
+      const updated = {
+        ...prev,
+        [playerId]: {
+          ...prev[playerId],
+          ...config
+        }
+      };
+      console.log('App - new playerConfigs:', updated);
+      return updated;
+    });
   }, []);
 
   return (
@@ -57,13 +63,13 @@ function App(): React.JSX.Element {
       <ConfigMenu onSave={handleSave} onLoad={handleLoad} />
 
       {/* Account List */}
-      <AccountList selectedPlayer={selectedPlayer} onSelectPlayer={setSelectedPlayer} />
+      <AccountList selectedPlayerId={selectedPlayerId} onSelectPlayer={setSelectedPlayerId} />
 
       {/* Content Tabs - takes remaining height */}
       <div className="flex-1 overflow-hidden">
         <ContentTabs
           key={configVersion} // Force remount when config is loaded
-          selectedPlayer={selectedPlayer}
+          selectedPlayerId={selectedPlayerId}
           playerConfigs={playerConfigs}
           onUpdateConfig={updatePlayerConfig}
         />

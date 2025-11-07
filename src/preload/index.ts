@@ -86,6 +86,9 @@ const api = {
   updatePlayerParty: (playerId: number, party: any) => {
     ipcRenderer.send('player:update-party', { playerId, party })
   },
+  invitePartyMembers: (playerId: number, partyConfig: any) => {
+    ipcRenderer.send('party:invite-members', { playerId, partyConfig })
+  },
   saveConfig: (config: any) => {
     return ipcRenderer.invoke('config:save', config)
   },

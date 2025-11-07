@@ -4,7 +4,7 @@ import { DATA_BATTLE_SKILL } from '../../../helpers/constant2';
 interface SkillDropdownProps {
   value: number;
   label: string;
-  onChange: (value: string) => void;
+  onChange: (value: number) => void;
 }
 
 export function SkillDropdown({ value, label, onChange }: SkillDropdownProps) {
@@ -47,7 +47,7 @@ export function SkillDropdown({ value, label, onChange }: SkillDropdownProps) {
                   <div
                     key={id}
                     onClick={() => {
-                      onChange(String(id));
+                      onChange(id);
                       setIsOpen(false);
                       setSearchTerm('');
                     }}

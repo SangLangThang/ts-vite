@@ -1,43 +1,80 @@
 import { useState } from 'react'
-import { Player } from '../types'
 import { BasicComponent } from './BasicComponent'
 import { CombatComponent } from './CombatComponent'
 import { MissionComponent } from './MissionComponent'
 import { BagComponent } from './BagComponent'
+import { PlayerConfig } from 'src/types'
 
-interface PlayerConfig {
-  partyConfig?: any;
-  battleSkillConfig?: any;
-}
+
 
 interface ContentTabsProps {
-  selectedPlayer: Player | null;
+  selectedPlayerId: number | null;
   playerConfigs: { [playerId: number]: PlayerConfig };
   onUpdateConfig: (playerId: number, config: Partial<PlayerConfig>) => void;
 }
 
-export function ContentTabs({ selectedPlayer, playerConfigs, onUpdateConfig }: ContentTabsProps): React.JSX.Element {
+export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }: ContentTabsProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState(0)
   const tabs = ['Cơ bản', 'Thùng đồ', 'Chiến đấu', 'Nhiệm vụ']
 
-  const playerConfig = selectedPlayer ? playerConfigs[selectedPlayer._Id] : undefined
+  const playerConfig = selectedPlayerId ? playerConfigs[selectedPlayerId] : undefined
 
   const renderTabContent = (): React.JSX.Element | null => {
     switch (activeTab) {
       case 0:
         return <BasicComponent
-          selectedPlayer={selectedPlayer}
-          initialConfig={playerConfig}
-          onConfigChange={(config) => {
-            if (selectedPlayer) {
-              onUpdateConfig(selectedPlayer._Id, config)
+          selectedPlayerId={selectedPlayerId}
+          initialBattleConfig={playerConfig?.battleSkillConfig}
+          initialPartyConfig={playerConfig?.partyConfig}
+          onBattleConfigChange={(battleConfig) => {
+            if (selectedPlayerId) {
+              onUpdateConfig(selectedPlayerId, {
+                battleSkillConfig: battleConfig,
+                partyConfig: playerConfig?.partyConfig || {
+                  member1Id: 0,
+                  member2Id: 0,
+                  member3Id: 0,
+                  member4Id: 0,
+                  qsMemberIndex: 1,
+                  leaderId: 0
+                }
+              })
+            }
+          }}
+          onPartyConfigChange={(partyConfig) => {
+            console.log('ContentTabs - onPartyConfigChange called with:', partyConfig);
+            if (selectedPlayerId) {
+              const fullConfig = {
+                battleSkillConfig: playerConfig?.battleSkillConfig || {
+                  changeGemChar: false,
+                  hoisinhChar: false,
+                  autoAttack: false,
+                  skillNormalChar: 99999,
+                  skillSoloChar: 99999,
+                  skillSpecialChar: 99999,
+                  skillCCChar: 99999,
+                  skillBuffChar: 99999,
+                  skillClearChar: 99999,
+                  changeGemPet: false,
+                  hoisinhPet: false,
+                  skillNormalPet: 99999,
+                  skillSoloPet: 99999,
+                  skillSpecialPet: 99999,
+                  skillCCPet: 99999,
+                  skillBuffPet: 99999,
+                  skillClearPet: 99999
+                },
+                partyConfig: partyConfig
+              };
+              console.log('ContentTabs - calling onUpdateConfig with playerId:', selectedPlayerId, 'config:', fullConfig);
+              onUpdateConfig(selectedPlayerId, fullConfig);
             }
           }}
         />
       case 1:
-        return <BagComponent selectedPlayer={selectedPlayer} />
+        return <BagComponent selectedPlayerId={selectedPlayerId} />
       case 2:
-        return <CombatComponent selectedPlayer={selectedPlayer} />
+        return <CombatComponent selectedPlayerId={selectedPlayerId} />
       case 3:
         return <MissionComponent />
       default:

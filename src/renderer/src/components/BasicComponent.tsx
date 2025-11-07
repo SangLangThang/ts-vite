@@ -2,75 +2,26 @@ import { useEffect, useState } from 'react';
 import { BattleSkills } from './BattleSkills';
 import { EquipmentSlot } from './EquipmentSlot';
 import { PartyZone } from './PartyZone';
-import { CharEquip, PartyInfo, Pet, Player, PlayerConfig } from 'src/types';
+import { BattleSkillConfig, CharEquip, PartyConfig, PartyInfo, Pet } from 'src/types';
 
 interface BasicComponentProps {
-  selectedPlayer: Player | null;
-  initialConfig?: PlayerConfig;
-  onConfigChange: (config: PlayerConfig) => void;
+  selectedPlayerId: number | null;
+  onBattleConfigChange: (config: BattleSkillConfig) => void;
+  onPartyConfigChange: (config: PartyConfig) => void;
+  initialBattleConfig?: BattleSkillConfig;
+  initialPartyConfig?: PartyConfig;
 }
 
 export function BasicComponent({
-  selectedPlayer,
-  initialConfig,
-  onConfigChange
+  selectedPlayerId,
+  onBattleConfigChange,
+  onPartyConfigChange,
+  initialBattleConfig,
+  initialPartyConfig
 }: BasicComponentProps): React.JSX.Element {
   const [charEquipment, setCharEquipment] = useState<CharEquip[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetIndex, setSelectedPetIndex] = useState<number>(0);
-
-  // Battle skills state
-  const [battleSkillConfig, setBattleSkillConfig] = useState(
-    initialConfig?.battleSkillConfig || {
-      // Char settings
-      changeGemChar: false,
-      hoisinhChar: false,
-      autoAttack: false,
-      skillNormalChar: 99999,
-      skillSoloChar: 99999,
-      skillSpecialChar: 99999,
-      skillCCChar: 99999,
-      skillBuffChar: 99999,
-      skillClearChar: 99999,
-
-      // Pet settings
-      changeGemPet: false,
-      hoisinhPet: false,
-      skillNormalPet: 99999,
-      skillSoloPet: 99999,
-      skillSpecialPet: 99999,
-      skillCCPet: 99999,
-      skillBuffPet: 99999,
-      skillClearPet: 99999
-    }
-  );
-
-  // Party config state
-  const [partyConfig, setPartyConfig] = useState(
-    initialConfig?.partyConfig || {
-      member1Id: 0,
-      member2Id: 0,
-      member3Id: 0,
-      member4Id: 0,
-      qsMemberIndex: 1,
-      leaderId: 0
-    }
-  );
-
-  // Sync with loaded config
-  useEffect(() => {
-    if (initialConfig?.battleSkillConfig) {
-      setBattleSkillConfig(initialConfig.battleSkillConfig);
-    }
-    if (initialConfig?.partyConfig) {
-      setPartyConfig(initialConfig.partyConfig);
-    }
-  }, [initialConfig]);
-
-  // Update parent when configs change
-  useEffect(() => {
-    onConfigChange({ battleSkillConfig, partyConfig });
-  }, [battleSkillConfig, partyConfig, onConfigChange]);
 
   useEffect(() => {
     // Reset when player changes
@@ -78,11 +29,11 @@ export function BasicComponent({
     setPets([]);
     setSelectedPetIndex(0);
 
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
 
     // Listen for equipment/pet updates
     const handleEquipmentUpdate = (data: { id: number; charEquip?: CharEquip[]; pets?: Pet[] }) => {
-      if (selectedPlayer && data.id === selectedPlayer._Id) {
+      if (selectedPlayerId && data.id === selectedPlayerId) {
         if (data.charEquip) {
           setCharEquipment(data.charEquip);
         }
@@ -101,8 +52,8 @@ export function BasicComponent({
     const partyHandler = window.api.onPlayerPartyUpdate?.(handlePartyUpdate);
 
     // Request current equipment and party data
-    window.api.requestPlayerEquipment?.(selectedPlayer._Id);
-    window.api.requestPlayerParty?.(selectedPlayer._Id);
+    window.api.requestPlayerEquipment?.(selectedPlayerId);
+    window.api.requestPlayerParty?.(selectedPlayerId);
 
     return () => {
       if (equipHandler) {
@@ -112,9 +63,9 @@ export function BasicComponent({
         window.api.removePlayerPartyUpdateListener?.(partyHandler);
       }
     };
-  }, [selectedPlayer]);
+  }, [selectedPlayerId]);
 
-  if (!selectedPlayer) {
+  if (!selectedPlayerId) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-gray-400">No player selected</p>
@@ -248,12 +199,15 @@ export function BasicComponent({
       </div>
 
       <PartyZone
-        selectedPlayer={selectedPlayer}
-        initialConfig={partyConfig}
-        onConfigChange={setPartyConfig}
+        selectedPlayerId={selectedPlayerId}
+        initialConfig={initialPartyConfig}
+        onConfigChange={onPartyConfigChange}
       />
 
-      <BattleSkills config={battleSkillConfig} onConfigChange={setBattleSkillConfig} />
+      <BattleSkills
+        initialConfig={initialBattleConfig}
+        onConfigChange={onBattleConfigChange}
+      />
     </div>
   );
 }

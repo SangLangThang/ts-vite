@@ -1,14 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PartyInfo, Player } from 'src/types';
-
-interface PartyConfig {
-  member1Id: number;
-  member2Id: number;
-  member3Id: number;
-  member4Id: number;
-  qsMemberIndex: number;
-  leaderId: number;
-}
+import { PartyConfig, PartyInfo } from 'src/types';
 
 interface PartyStatus {
   currentPartyId: number;
@@ -19,12 +10,12 @@ interface PartyStatus {
 }
 
 interface PartyZoneProps {
-  selectedPlayer: Player;
+  selectedPlayerId: number;
   initialConfig?: PartyConfig;
   onConfigChange: (config: PartyConfig) => void;
 }
 
-export function PartyZone({ selectedPlayer, initialConfig, onConfigChange }: PartyZoneProps) {
+export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: PartyZoneProps) {
   const [partyConfig, setPartyConfig] = useState<PartyConfig>(
     initialConfig || {
       member1Id: 0,
@@ -45,32 +36,23 @@ export function PartyZone({ selectedPlayer, initialConfig, onConfigChange }: Par
     currentMember4: 0
   });
 
-  // Sync with initial config
+  // Sync with initial config - only on mount or when initialConfig changes
   useEffect(() => {
     if (initialConfig) {
+      console.log('PartyZone - syncing with initialConfig:', initialConfig);
       setPartyConfig(initialConfig);
     }
   }, [initialConfig]);
 
-  // Update parent when config changes
   useEffect(() => {
-    onConfigChange(partyConfig);
-  }, [partyConfig, onConfigChange]);
-
-  useEffect(() => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
 
     const handlePartyUpdate = (data: { id: number; party: PartyInfo }) => {
       console.log('handlePartyUpdate', data);
       const party = data.party;
-      setPartyConfig({
-        member1Id: party.member1Id,
-        member2Id: party.member2Id,
-        member3Id: party.member3Id,
-        member4Id: party.member4Id,
-        qsMemberIndex: party.qsMemberIndex, // 1-4: which member is QS
-        leaderId: party.leaderId // Id của chủ PT để tham gia
-      });
+
+      // Only update partyStatus (current state from backend)
+      // Don't overwrite partyConfig (user's desired configuration)
       setPartyStatus({
         currentPartyId: party.currentPartyId,
         currentMember1: party.currentMember1,
@@ -78,51 +60,79 @@ export function PartyZone({ selectedPlayer, initialConfig, onConfigChange }: Par
         currentMember3: party.currentMember3,
         currentMember4: party.currentMember4
       });
+
+      // Only sync config from backend if we don't have an initial config
+      // This allows backend to populate initial values, but won't overwrite user changes
+      if (!initialConfig) {
+        setPartyConfig({
+          member1Id: party.member1Id,
+          member2Id: party.member2Id,
+          member3Id: party.member3Id,
+          member4Id: party.member4Id,
+          qsMemberIndex: party.qsMemberIndex,
+          leaderId: party.leaderId
+        });
+      }
     };
 
     const partyHandler = window.api.onPlayerPartyUpdate?.(handlePartyUpdate);
 
-    window.api.requestPlayerParty?.(selectedPlayer._Id);
+    window.api.requestPlayerParty?.(selectedPlayerId);
 
     return () => {
       if (partyHandler) {
         window.api.removePlayerPartyUpdateListener?.(partyHandler);
       }
     };
-  }, [selectedPlayer]);
+  }, [selectedPlayerId, initialConfig]);
 
   const handleMemberIdChange = (memberNum: number, value: string) => {
-    setPartyConfig({
+    const newConfig = {
       ...partyConfig,
       [`member${memberNum}Id`]: parseInt(value) || 0
-    });
+    };
+    console.log('PartyZone - handleMemberIdChange, calling onConfigChange with:', newConfig);
+    setPartyConfig(newConfig);
+    onConfigChange(newConfig);
   };
 
   const handleQsChange = (memberNum: number) => {
-    setPartyConfig({
+    const newConfig = {
       ...partyConfig,
       qsMemberIndex: memberNum
-    });
+    };
+    console.log('PartyZone - handleQsChange, calling onConfigChange with:', newConfig);
+    setPartyConfig(newConfig);
+    onConfigChange(newConfig);
   };
 
   const handleLeaderIdChange = (value: string) => {
-    setPartyConfig({
+    const newConfig = {
       ...partyConfig,
       leaderId: parseInt(value) || 0
-    });
+    };
+    console.log('PartyZone - handleLeaderIdChange, calling onConfigChange with:', newConfig);
+    setPartyConfig(newConfig);
+    onConfigChange(newConfig);
+  };
+
+  const handleInviteMembers = () => {
+    console.log('PartyZone - handleInviteMembers called');
+    // Send invite request to main process
+    window.api.invitePartyMembers?.(selectedPlayerId, partyConfig);
   };
 
   return (
     <div className="px-1 py-3">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
         <div className="flex items-center justify-start gap-6">
-          {/* Current Party ID - shows which party we're in */}
-          <div>
-            <span className="font-semibold text-gray-700">Tổ đội: </span>
-            <span className="text-blue-600 font-semibold">
-              {partyStatus.currentPartyId || '---'}
-            </span>
-          </div>
+          {/* Mời Button */}
+          <button
+            onClick={handleInviteMembers}
+            className="px-3 py-0.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+          >
+            Mời
+          </button>
 
           {/* 4 Member Inputs with Radio - User can input IDs */}
           {[1, 2, 3, 4].map((num) => {
