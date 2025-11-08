@@ -3,6 +3,7 @@ import { BasicComponent } from './BasicComponent'
 import { CombatComponent } from './CombatComponent'
 import { MissionComponent } from './MissionComponent'
 import { BagComponent } from './BagComponent'
+import { DebugComponent } from './DebugComponent'
 import { PlayerConfig } from 'src/types'
 
 
@@ -15,7 +16,7 @@ interface ContentTabsProps {
 
 export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }: ContentTabsProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState(0)
-  const tabs = ['Cơ bản', 'Thùng đồ', 'Chiến đấu', 'Nhiệm vụ']
+  const tabs = ['Cơ bản', 'Thùng đồ', 'Chiến đấu', 'Nhiệm vụ', 'Debug']
 
   const playerConfig = selectedPlayerId ? playerConfigs[selectedPlayerId] : undefined
 
@@ -77,6 +78,8 @@ export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }:
         return <CombatComponent selectedPlayerId={selectedPlayerId} />
       case 3:
         return <MissionComponent />
+      case 4:
+        return <DebugComponent />
       default:
         return null
     }

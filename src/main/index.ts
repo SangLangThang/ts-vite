@@ -31,7 +31,7 @@ function createProxyLocal(): void {
     {
       hostname: PROXY_INFO.hostFake,
       upstream: function (context, data) {
-        //console.log("upstream", data.toString("hex"));
+        console.log("upstream", data.toString("hex"));
 
         if (API.compareString(data, 8, 10, 'ac')) {
           const id = API.findIDCharFromData(data);
@@ -262,6 +262,31 @@ app.whenReady().then(() => {
       return { success: false, message: 'Load cancelled' };
     } catch (error: any) {
       return { success: false, message: error.message };
+    }
+  });
+
+  // Handle debug XOR with AD
+  ipcMain.handle('debug:xor-with-ad', (_event, hexString: string) => {
+    try {
+      const result = API.xorWithAD(hexString);
+      return result;
+    } catch (error: any) {
+      throw new Error(`XOR conversion failed: ${error.message}`);
+    }
+  });
+
+  // Handle debug decimal to hex conversion
+  ipcMain.handle('debug:decimal-to-hex', (_event, decimal: number) => {
+    try {
+      // Convert decimal to hex (padded to 4 characters)
+      const hex = decimal.toString(16).padStart(4, '0');
+
+      // Rearrange using the same logic as rearrangeSkillId
+      const rearranged = API.rearrangeSkillId(decimal);
+
+      return { hex, rearranged };
+    } catch (error: any) {
+      throw new Error(`Decimal to hex conversion failed: ${error.message}`);
     }
   });
 

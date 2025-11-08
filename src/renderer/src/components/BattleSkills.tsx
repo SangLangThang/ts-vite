@@ -85,7 +85,7 @@ export function BattleSkills({ initialConfig, onConfigChange }: BattleSkillsProp
                   onChange={(e) => handleSkillChange('changeGemChar', e.target.checked)}
                   className="w-3 h-3 cursor-pointer"
                 />
-                <span className="font-medium text-black">Change Gem</span>
+                <span className="font-medium text-black">Tự Thay Ngọc</span>
               </label>
               <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                 <input
@@ -103,7 +103,7 @@ export function BattleSkills({ initialConfig, onConfigChange }: BattleSkillsProp
                   onChange={(e) => handleSkillChange('autoAttack', e.target.checked)}
                   className="w-3 h-3 cursor-pointer"
                 />
-                <span className="font-medium text-black">Auto Attack</span>
+                <span className="font-medium text-black">Tự Đánh</span>
               </label>
             </div>
 
@@ -155,7 +155,7 @@ export function BattleSkills({ initialConfig, onConfigChange }: BattleSkillsProp
                   onChange={(e) => handleSkillChange('changeGemPet', e.target.checked)}
                   className="w-3 h-3 cursor-pointer"
                 />
-                <span className="font-medium text-black">Change Gem</span>
+                <span className="font-medium text-black">Tự Thay Ngọc</span>
               </label>
               <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                 <input

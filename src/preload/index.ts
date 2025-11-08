@@ -106,6 +106,12 @@ const api = {
   },
   loadConfig: () => {
     return ipcRenderer.invoke('config:load')
+  },
+  debugXorWithAD: (hexString: string) => {
+    return ipcRenderer.invoke('debug:xor-with-ad', hexString)
+  },
+  debugDecimalToHex: (decimal: number) => {
+    return ipcRenderer.invoke('debug:decimal-to-hex', decimal)
   }
 }
 

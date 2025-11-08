@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Battleinfo } from '../types';
+import { Battleinfo } from 'src/types';
 
 interface CombatComponentProps {
   selectedPlayerId: number | null;

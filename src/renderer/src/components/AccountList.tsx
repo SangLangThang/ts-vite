@@ -47,7 +47,7 @@ export function AccountList({
 
   const getStatus = (player: Player): string => {
     if (player._PlayerOnline === 1) {
-      return player._MapName ? `Map: ${player._MapName}` : 'Online';
+      return player._MapId ? `Map: ${player._MapId}` : 'Online';
     }
     return 'Connecting...';
   };

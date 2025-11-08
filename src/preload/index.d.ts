@@ -25,6 +25,8 @@ interface API {
   invitePartyMembers: (playerId: number, partyConfig: any) => void
   saveConfig: (config: any) => Promise<{ success: boolean; filePath?: string; message?: string }>
   loadConfig: () => Promise<{ success: boolean; config?: any; message?: string }>
+  debugXorWithAD: (hexString: string) => Promise<string>
+  debugDecimalToHex: (decimal: number) => Promise<{ hex: string; rearranged: string }>
 }
 
 declare global {

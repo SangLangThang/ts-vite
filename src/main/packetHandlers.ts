@@ -3,7 +3,7 @@ import { sendPacketWithDelay } from '.';
 import API from '../helpers/API';
 import { DATA_BATTLE_PET, DATA_ITEM } from '../helpers/constant2';
 import { clients, getListPlayer } from '../store/clients';
-import { ClientBot } from '../types';
+import { Battleinfo, ClientBot } from '../types';
 import { rendererSend } from './renderer';
 
 export const remotePorts: [number, number | null][] = [];
@@ -459,8 +459,33 @@ function checkBattle(A_0: number[], remotePort: number) {
   }
 }
 
-function checkWarpFinish(_A_0: any, _remotePort: any) {
+function checkWarpFinish(A_0: number[], remotePort: number) {
   // TODO: Implement checkWarpFinish
+  const find = remotePorts.find((e) => e[1] == remotePort);
+  if (!find) return;
+  const account = clients[find[0]];
+
+  if (!account || !account.socket.connectByTool) return;
+
+  const num = parseInt(API.byteToHexstring([A_0[8], A_0[7], A_0[6], A_0[5]]), 16);
+
+  if (num != account.player._Id) return;
+
+  const currentMapId = parseInt(API.byteToHexstring([A_0[10], A_0[9]]), 16);
+
+  account.player._MapId = currentMapId;
+  rendererSend('player:login', {
+    id: num,
+    name: account.player._Name,
+    mapId: account.player._MapId,
+    status: 'Online',
+    player: account.player
+  });
+
+  // Also send the entire updated list derived from clients
+  rendererSend('player:list-update', {
+    listPlayer: getListPlayer()
+  });
 }
 
 function checkParty(A_0: number[], remotePort: number) {
@@ -1909,8 +1934,207 @@ function getSkillName(skillId: number): string {
   return `Skill_${skillId}`;
 }
 
-function checkTurn(_A_0: any, _remotePort: any) {
-  // TODO: Implement checkTurn
+function checkTurn(A_0: number[], remotePort: number) {
+  const find = remotePorts.find((e) => e[1] === remotePort);
+  if (!find) {
+    return;
+  }
+
+  const account = clients[find[0]];
+  if (!account) {
+    return;
+  }
+
+  const caseType = A_0[5];
+
+  if (caseType != 1) {
+    return;
+  }
+
+  // Check if this account is a leader (has member configuration)
+  const isLeader =
+    account.party.member1Id > 0 ||
+    account.party.member2Id > 0 ||
+    account.party.member3Id > 0 ||
+    account.party.member4Id > 0;
+
+  const leaderId = account.party.leaderId;
+
+  if (!isLeader && leaderId > 0) {
+    // This is a party member, increment the leader's turn counter
+    const leaderAccount = clients[leaderId];
+    if (leaderAccount) {
+      leaderAccount.turn++;
+
+      // Count how many members are currently in the party (including leader)
+      let memberCount = 1; // Leader counts as 1
+      if (leaderAccount.party.currentMember1 > 0) memberCount++;
+      if (leaderAccount.party.currentMember2 > 0) memberCount++;
+      if (leaderAccount.party.currentMember3 > 0) memberCount++;
+      if (leaderAccount.party.currentMember4 > 0) memberCount++;
+
+      // If all members have taken their turn, trigger auto attack
+      if (leaderAccount.turn >= memberCount) {
+        // Reset turn counter
+        leaderAccount.turn = 0;
+
+        // Call autoAttack function
+        autoAttack(leaderAccount, leaderId);
+      }
+    }
+  } else if (isLeader) {
+    // This is the leader - increment own turn counter
+    account.turn++;
+
+    // Count members (including leader)
+    let memberCount = 1; // Leader counts as 1
+    if (account.party.currentMember1 > 0) memberCount++;
+    if (account.party.currentMember2 > 0) memberCount++;
+    if (account.party.currentMember3 > 0) memberCount++;
+    if (account.party.currentMember4 > 0) memberCount++;
+
+    // If all members have taken their turn
+    if (account.turn >= memberCount) {
+      account.turn = 0;
+
+      autoAttack(account, account.player._Id);
+    }
+  } else {
+    // Solo player (not in party, not a leader)
+    // Call autoAttack immediately
+    autoAttack(account, account.player._Id);
+  }
+}
+
+// Helper: Convert position number (1-20) to location hex string
+function getLocation(position: number): string {
+  const row = Math.floor((position - 1) / 5);
+  const col = (position - 1) % 5;
+  return row.toString(16).padStart(2, '0') + col.toString(16).padStart(2, '0');
+}
+
+// Helper: Get location of first alive enemy with adjacent alive enemy (F1 logic)
+function getVTF1(battleInfo: (Battleinfo | null)[]): string {
+  // Check positions 1-5 (row 0) for adjacent enemies
+  for (let i = 0; i < 4; i++) {
+    const pos1 = battleInfo[i];
+    const pos2 = battleInfo[i + 1];
+    if (pos1 && pos1._Hp > 0 && pos2 && pos2._Hp > 0) {
+      return getLocation(i + 2); // Return position of second enemy (i+2 because positions are 1-based)
+    }
+  }
+
+  // Check positions 6-10 (row 1) for adjacent enemies
+  for (let i = 5; i < 9; i++) {
+    const pos1 = battleInfo[i];
+    const pos2 = battleInfo[i + 1];
+    if (pos1 && pos1._Hp > 0 && pos2 && pos2._Hp > 0) {
+      return getLocation(i + 2);
+    }
+  }
+
+  // If no adjacent enemies, find first alive enemy
+  for (let i = 0; i < 10; i++) {
+    const pos = battleInfo[i];
+    if (pos && pos._Hp > 0) {
+      return getLocation(i + 1);
+    }
+  }
+
+  return '0002'; // Default location
+}
+
+// Helper: Get first alive enemy location (sequential attack)
+function getFirstAliveEnemy(battleInfo: (Battleinfo | null)[]): string {
+  for (let i = 0; i < 10; i++) {
+    const pos = battleInfo[i];
+    if (pos && pos._Hp > 0) {
+      return getLocation(i + 1);
+    }
+  }
+  return '0002'; // Default location
+}
+
+const listSkillMySelf = [18001, 14013, 10010, 12025, 11016, 17001, 10031];
+
+// Character attack function
+function characterAttack(account: ClientBot, skillId: number, location: string): void {
+  const skillHex = API.rearrangeSkillId(skillId);
+  let locationHex = getFirstAliveEnemy(account.battleInfo);
+  const charColHex = account.charCol.toString(16).padStart(2, '0');
+
+  if(listSkillMySelf.includes(skillId)){
+    locationHex = `03${charColHex}`;
+  }
+
+  // if (location !== 'Lần lượt') {
+  //   if (location === 'F1') {
+  //     locationHex = getVTF1(account.battleInfo);
+  //   } else {
+  //     // location is a position number string
+  //     const pos = parseInt(location);
+  //     locationHex = getLocation(pos);
+  //   }
+  // } else {
+  //   // Sequential attack - find first alive enemy
+  //   locationHex = getFirstAliveEnemy(account.battleInfo);
+  // }
+
+  const packet = `F4440A00320103${charColHex}${locationHex}${skillHex}0F16`;
+  console.log('packet', API.xorWithAD(packet))
+  //59e9a7ad9facae af 03af 828a a2bb
+  //59e9a7ad9facae af aeaf 828a a9c5
+  sendPacketWithDelay(account.socket.context, API.xorWithAD(packet), 0);
+}
+
+// Pet attack function
+function petAttack(account: ClientBot, skillId: number, location: string): void {
+  const petIndex = account.petBattle ? account.petBattle - 1 : 0;
+  const pet = account.pets[petIndex];
+
+  if (!pet) {
+    return;
+  }
+
+  const skillHex = API.rearrangeSkillId(skillId);
+  let locationHex = getFirstAliveEnemy(account.battleInfo);
+  const charColHex = account.charCol.toString(16).padStart(2, '0');
+
+  if(listSkillMySelf.includes(skillId)){
+    locationHex = `02${charColHex}`;
+  }
+
+  // if (location !== 'Lần lượt') {
+  //   if (location === 'F1') {
+  //     locationHex = getVTF1(account.battleInfo);
+  //   } else {
+  //     // location is a position number string
+  //     const pos = parseInt(location);
+  //     locationHex = getLocation(pos);
+  //   }
+  // } else {
+  //   // Sequential attack - find first alive enemy
+  //   locationHex = getFirstAliveEnemy(account.battleInfo);
+  // }
+
+  const packet = `F4440A00320102${charColHex}${locationHex}${skillHex}0F16`;
+  sendPacketWithDelay(account.socket.context, API.xorWithAD(packet), 0);
+}
+
+// Auto attack function - to be implemented
+function autoAttack(_account: ClientBot, _leaderId: number) {
+  // TODO: Implement auto attack logic
+  console.log('[autoAttack] Called for leader:', _leaderId);
+  if (_account.battleSkillConfig?.autoAttack) {
+    const battleSkillConfig = _account.battleSkillConfig;
+
+    const skillCharUse = battleSkillConfig.skillNormalChar;
+    characterAttack(_account, skillCharUse, '');
+    if (_account.petBattle) {
+      const skillPetUse = battleSkillConfig.skillNormalPet;
+      petAttack(_account, skillPetUse, '');
+    }
+  }
 }
 
 function checkRemoveCC(A_0: number[], remotePort: number | null) {
