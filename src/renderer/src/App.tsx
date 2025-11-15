@@ -14,16 +14,15 @@ function App(): React.JSX.Element {
   const [configVersion, setConfigVersion] = useState(0); // Used to force re-render
 
   const handleSave = async () => {
-    console.log('playerConfigs', playerConfigs)
     try {
       const result = await window.api.saveConfig(playerConfigs);
       if (result.success) {
-        console.log('Configuration saved successfully to:', result.filePath);
+        // Configuration saved
       } else {
-        console.log('Save cancelled or failed:', result.message);
+        // Save cancelled or failed
       }
     } catch (error) {
-      console.error('Error saving config:', error);
+      // Error saving config
     }
   };
 
@@ -33,17 +32,15 @@ function App(): React.JSX.Element {
       if (result.success) {
         setPlayerConfigs(result.config as AllConfigs);
         setConfigVersion((prev) => prev + 1); // Force re-render
-        console.log('Configuration loaded successfully');
       } else {
-        console.log('Load cancelled or failed:', result.message);
+        // Load cancelled or failed
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      // Error loading config
     }
   };
 
   const updatePlayerConfig = useCallback((playerId: number, config: Partial<PlayerConfig>) => {
-    console.log('App - updatePlayerConfig called with playerId:', playerId, 'config:', config);
     setPlayerConfigs((prev) => {
       const updated = {
         ...prev,
@@ -52,7 +49,6 @@ function App(): React.JSX.Element {
           ...config
         }
       };
-      console.log('App - new playerConfigs:', updated);
       return updated;
     });
   }, []);

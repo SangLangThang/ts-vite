@@ -63,6 +63,11 @@ export interface ClientBot {
     type: 'char' | 'pet';
     element: number;
   }; // Track when waiting for gems from bag
+  waitingForCharGemChange?: boolean; // Track when waiting for character gem change to complete before changing pet gem
+  waitingForHaitacWalkRestart?: boolean; // Track when waiting for gem change to complete before restarting Hải Tặc walking
+  waitingForRotatingMemberOutParty?: boolean; // Track when waiting for rotating member to leave party after catching pet
+  autoQuestTargetMapId?: number; // Target map ID for auto quest warp
+  autoQuestWarpPath?: number[]; // Path of maps to warp through
 }
 
 export interface ClientSocket {

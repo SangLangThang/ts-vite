@@ -8,14 +8,11 @@ function getPictureItem() {
 
   // Check if Talk.Dat exists
   if (!fs.existsSync(filePath)) {
-    console.error(`Error: File not found: ${filePath}`);
-    console.log('Please ensure Talk.Dat is in the same folder as this script.');
     return;
   }
 
   // Read the entire file
   const byteArray = fs.readFileSync(filePath);
-  console.log(`Loaded file: ${filePath} (${byteArray.length} bytes)`);
 
   let num = 0;
   let itemCount = 0;
@@ -52,60 +49,41 @@ function getPictureItem() {
       itemsArray.push(itemData);
       itemCount++;
 
-      if (id > 0 && len > 0) {
-        console.log(`[${itemCount}] Extracted item ${id} (type: ${type}, size: ${len} bytes)`);
-      }
-
       // Handle special ID mappings from original C# code
       switch (id) {
         case 8914: {
           // Also add as 10000
           const mappedData = { ...itemData, _id: 10000 };
           itemsArray.push(mappedData);
-          console.log(`    -> Also added as item 10000`);
           break;
         }
         case 8924: {
           // Also add as 17001
           const mappedData = { ...itemData, _id: 17001 };
           itemsArray.push(mappedData);
-          console.log(`    -> Also added as item 17001`);
           break;
         }
         case 14002: {
           // Also add as 18001
           const mappedData = { ...itemData, _id: 18001 };
           itemsArray.push(mappedData);
-          console.log(`    -> Also added as item 18001`);
           break;
         }
       }
 
     } catch (error) {
       // End of file or error - stop parsing
-      console.log(`\nFinished parsing at offset ${num}`);
-      if (error.message) {
-        console.log(`Reason: ${error.message}`);
-      }
       break;
     }
   }
 
   // Save to JSON file
   fs.writeFileSync(outputJsonPath, JSON.stringify(itemsArray, null, 2));
-
-  console.log(`\n===== Extraction Complete =====`);
-  console.log(`Total items extracted: ${itemCount}`);
-  console.log(`Output file: ${outputJsonPath}`);
-  console.log(`===============================`);
 }
 
 // Run the extraction
-console.log('===== Item Data Extractor =====');
-console.log('Extracting item data from Talk.Dat...\n');
-
 try {
   getPictureItem();
 } catch (error) {
-  console.error('Error during extraction:', error);
+  // Error during extraction
 }

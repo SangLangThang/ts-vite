@@ -101,6 +101,9 @@ const api = {
   invitePartyMembers: (playerId: number, partyConfig: any) => {
     ipcRenderer.send('party:invite-members', { playerId, partyConfig })
   },
+  autoQuest: (playerId: number, warpId: number) => {
+    ipcRenderer.send('quest:auto-quest', { playerId, warpId })
+  },
   saveConfig: (config: any) => {
     return ipcRenderer.invoke('config:save', config)
   },
@@ -123,7 +126,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
-    console.error(error)
+    // Error handling
   }
 } else {
   // @ts-ignore (define in dts)

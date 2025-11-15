@@ -45,7 +45,6 @@ export function BasicComponent({
 
     // Listen for party updates from backend (when packets arrive)
     const handlePartyUpdate = (data: { id: number; party: PartyInfo }) => {
-      console.log('handlePartyUpdate', data);
     };
 
     // Listen for pet battle updates - auto-select the battling pet

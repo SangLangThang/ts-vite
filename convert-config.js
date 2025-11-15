@@ -77,7 +77,3 @@ Object.values(oldConfig).forEach(teamData => {
 const outputPath = 'd:\\Game\\New Tool\\ts\\config.json';
 fs.writeFileSync(outputPath, JSON.stringify(newConfig, null, 2), 'utf8');
 
-console.log(`Converted ${Object.keys(newConfig).length} player configs`);
-console.log(`Output saved to: ${outputPath}`);
-console.log('\nSample config for first player:');
-console.log(JSON.stringify(Object.entries(newConfig)[0], null, 2));

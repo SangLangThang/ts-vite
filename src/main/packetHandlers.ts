@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { sendPacketWithDelay } from '.';
 import API from '../helpers/API';
-import { DATA_BATTLE_PET, DATA_ITEM, DATA_BATTLE_SKILL } from '../helpers/constant2';
 import { PACKET } from '../helpers/constant';
+import { DATA_BATTLE_PET, DATA_BATTLE_SKILL, DATA_ITEM, DATA_WARP } from '../helpers/constant2';
+import { graph } from '../helpers/transfomer';
 import { clients, getListPlayer } from '../store/clients';
 import { Battleinfo, ClientBot } from '../types';
 import { rendererSend } from './renderer';
@@ -547,19 +548,56 @@ function checkBattle(A_0: number[], remotePort: number) {
               battle: account.battle
             });
 
-            // If this is Hải Tặc event, restart walking interval after battle ends
-            if (account.currentEvent === 'haitac' && !account.haitacIntervalId) {
-              console.log(
-                `[Hải Tặc] Battle ended. Restarting walking interval for player ${account.player._Id}`
-              );
-              //startHaitacWalking(account);
-            }
-
             // If battle was active, perform end battle cleanup
             // C# calls a() method here which likely handles battle end logic
 
-            // Auto change gem after battle ends
+            // Auto change gem after battle ends - for this account
             autoChangeGem(account);
+
+            // If this is Hải Tặc event, check if gem change is needed before restarting walking
+            // But don't restart if waiting for rotating member to leave party
+            if (account.currentEvent === 'haitac' && !account.haitacIntervalId && !account.waitingForRotatingMemberOutParty) {
+              // Check if all gems (character and pet) are correct
+              const allGemsCorrect = checkIfAllGemsCorrect(account);
+
+              if (allGemsCorrect) {
+                // All gems are correct, restart walking immediately
+                autoCatchHaiTac(account, account.player._Id);
+              } else {
+                // Set flag to restart walking after gem change completes
+                account.waitingForHaitacWalkRestart = true;
+              }
+            }
+
+            // Also call autoChangeGem for all party members
+            // Check if this is a leader with party members
+            if (
+              account.party.currentMember1 > 0 ||
+              account.party.currentMember2 > 0 ||
+              account.party.currentMember3 > 0 ||
+              account.party.currentMember4 > 0
+            ) {
+              // This is a leader, call autoChangeGem for all party members
+              const memberIds = [
+                account.party.currentMember1,
+                account.party.currentMember2,
+                account.party.currentMember3,
+                account.party.currentMember4
+              ].filter((id) => id > 0);
+
+              memberIds.forEach((memberId) => {
+                const memberAccount = clients[memberId];
+                if (memberAccount) {
+                  autoChangeGem(memberAccount);
+                }
+              });
+            } else if (account.party.currentPartyId > 0) {
+              // This is a party member, also call for the leader
+              const leaderAccount = clients[account.party.currentPartyId];
+              if (leaderAccount) {
+                autoChangeGem(leaderAccount);
+              }
+            }
           }
         }
         break;
@@ -724,7 +762,6 @@ function checkBattle(A_0: number[], remotePort: number) {
 }
 
 function checkWarpFinish(A_0: number[], remotePort: number) {
-  // TODO: Implement checkWarpFinish
   const find = remotePorts.find((e) => e[1] == remotePort);
   if (!find) return;
   const account = clients[find[0]];
@@ -750,6 +787,98 @@ function checkWarpFinish(A_0: number[], remotePort: number) {
   rendererSend('player:list-update', {
     listPlayer: getListPlayer()
   });
+
+  // If autoQuest is active, continue warping to target
+  if (account.currentEvent === 'autoQuest' && account.autoQuestTargetMapId) {
+    autoWarp(account, account.autoQuestTargetMapId);
+  }
+}
+
+// AutoWarp function - converts C# AutoWarp logic
+export function autoWarp(account: ClientBot, targetMapId: number): void {
+  const currentMapId = account.player._MapId;
+  
+  // Check if already at target map or in battle
+  if (currentMapId === targetMapId || account.battle === 1) {
+    // Warp finished - clear event
+    afterAutoWarpFinished(account);
+    return;
+  }
+
+  // Get warp path using BFS
+  const paths = bfs(currentMapId, targetMapId);
+  if (!paths || paths.length === 0) {
+    // No path found - clear event
+    afterAutoWarpFinished(account);
+    return;
+  }
+
+  // Use first path found
+  const path = paths[0];
+  account.autoQuestWarpPath = path;
+
+  // Get next map in path
+  const currentIndex = path.indexOf(currentMapId);
+  if (currentIndex === -1 || currentIndex >= path.length - 1) {
+    // Already at target or invalid path
+    afterAutoWarpFinished(account);
+    return;
+  }
+
+  const nextMapId = path[currentIndex + 1];
+
+  // Get warp door ID from DATA_WARP
+  const warpDoorId = getWarpID(currentMapId, nextMapId);
+  if (warpDoorId <= 0) {
+    // No warp door found - clear event
+    afterAutoWarpFinished(account);
+    return;
+  }
+
+  // Send warp packet
+  const warpPacket = API.Warp(warpDoorId);
+  if (account.socket.context) {
+    sendPacketWithDelay(account.socket.context, warpPacket, 0);
+  }
+}
+
+// Helper function to get warp door ID between two maps
+function getWarpID(mapId1: number, mapId2: number): number {
+  const warp = DATA_WARP.find(([src, _doorId, dest]) => src === mapId1 && dest === mapId2);
+  return warp ? warp[1] : 0;
+}
+
+// Helper function for BFS pathfinding (similar to C# bfs)
+function bfs(start: number, end: number): number[][] | null {
+  if (!(start in graph)) return null;
+
+  const paths: number[][] = [];
+  const queue: [number, number[]][] = [[start, [start]]];
+  const visited = new Set<number>();
+
+  while (queue.length > 0) {
+    const [node, path] = queue.shift()!;
+
+    for (const neighbor of graph[node]) {
+      if (neighbor === end) {
+        paths.push([...path, neighbor]);
+      } else if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push([neighbor, [...path, neighbor]]);
+      }
+    }
+  }
+
+  return paths.length > 0 ? paths : null;
+}
+
+// Helper function to clear auto warp state
+function afterAutoWarpFinished(account: ClientBot): void {
+  if (account.currentEvent === 'autoQuest') {
+    account.currentEvent = undefined;
+    account.autoQuestTargetMapId = undefined;
+    account.autoQuestWarpPath = undefined;
+  }
 }
 
 function checkParty(A_0: number[], remotePort: number) {
@@ -768,9 +897,6 @@ function checkParty(A_0: number[], remotePort: number) {
         // Check if client is running Hải Tặc event
         if (account.currentEvent === 'haitac') {
           // For Hải Tặc event, always accept party invite
-          console.log(
-            `[Hải Tặc Event] Leader ${account.player._Id} accepting party invite from member ${memberId}`
-          );
           const packet = API.leaderAcceptedPartyFrom(memberId);
           sendPacketWithDelay(account.socket.context, packet, 0);
         } else {
@@ -797,14 +923,22 @@ function checkParty(A_0: number[], remotePort: number) {
           account.currentEvent === 'haitac' && account.party.rotatingMembers?.includes(memberId);
 
         if (isRotatingMember) {
-          console.log(`[Hải Tặc] Rotating member ${memberId} left party`);
+          // Clear rotating member from currentMember4 slot
+          if (account.party.currentMember4 === memberId) {
+            account.party.currentMember4 = 0;
+          }
+
+          // Clear flag - rotating member has left party
+          account.waitingForRotatingMemberOutParty = false;
 
           // Clear walking interval when rotating member leaves
           if (account.haitacIntervalId) {
             clearInterval(account.haitacIntervalId);
             account.haitacIntervalId = undefined;
-            console.log(`[Hải Tặc] Cleared walking interval`);
           }
+
+          // Check gems after rotating member leaves
+          autoChangeGem(account);
 
           // Move to next rotating member
           if (
@@ -812,26 +946,34 @@ function checkParty(A_0: number[], remotePort: number) {
             account.party.rotatingMembers &&
             account.party.currentRotatingIndex < account.party.rotatingMembers.length - 1
           ) {
-            // Increment index to next rotating member
-            account.party.currentRotatingIndex++;
-            const nextRotatingId =
-              account.party.rotatingMembers[account.party.currentRotatingIndex];
+            // Find next available rotating member (skip if not found, continue to next)
+            let foundNextMember = false;
+            for (
+              let i = account.party.currentRotatingIndex + 1;
+              i < account.party.rotatingMembers.length;
+              i++
+            ) {
+              const nextRotatingId = account.party.rotatingMembers[i];
+              const nextRotatingClient = clients[nextRotatingId];
 
-            console.log(
-              `[Hải Tặc] Inviting next rotating member ${nextRotatingId} (${account.party.currentRotatingIndex + 1}/${account.party.rotatingMembers.length})`
-            );
+              if (nextRotatingClient && nextRotatingClient.socket.context) {
+                // Found valid rotating member, set index and send invite
+                account.party.currentRotatingIndex = i;
+                const packet = API.joinToParty(account.player._Id);
+                sendPacketWithDelay(nextRotatingClient.socket.context, packet, 500);
+                foundNextMember = true;
+                break;
+              }
+            }
 
-            // Next rotating member sends invite to leader
-            const nextRotatingClient = clients[nextRotatingId];
-            if (nextRotatingClient && nextRotatingClient.socket.context) {
-              const packet = API.joinToParty(account.player._Id);
-              sendPacketWithDelay(nextRotatingClient.socket.context, packet, 500);
-            } else {
-              console.error(`[Hải Tặc] Next rotating member ${nextRotatingId} not found`);
+            // If no more rotating members found, clear the event
+            if (!foundNextMember) {
+              account.currentEvent = undefined;
+              account.party.rotatingMembers = undefined;
+              account.party.currentRotatingIndex = undefined;
             }
           } else {
             // All rotating members have been processed
-            console.log(`[Hải Tặc] All rotating members completed. Clearing event.`);
             account.currentEvent = undefined;
             account.party.rotatingMembers = undefined;
             account.party.currentRotatingIndex = undefined;
@@ -850,9 +992,6 @@ function checkParty(A_0: number[], remotePort: number) {
             account.party.currentPartyId = 0;
             // Clear event when leaving party as leader
             if (account.currentEvent) {
-              console.log(
-                `[Party] Clearing event '${account.currentEvent}' for player ${account.player._Id}`
-              );
               account.currentEvent = undefined;
               account.party.rotatingMembers = undefined;
               account.party.currentRotatingIndex = undefined;
@@ -861,9 +1000,6 @@ function checkParty(A_0: number[], remotePort: number) {
             account.party.currentPartyId = 0;
             // Clear event when you leave party
             if (account.currentEvent) {
-              console.log(
-                `[Party] Clearing event '${account.currentEvent}' for player ${account.player._Id}`
-              );
               account.currentEvent = undefined;
               account.party.rotatingMembers = undefined;
               account.party.currentRotatingIndex = undefined;
@@ -894,23 +1030,34 @@ function checkParty(A_0: number[], remotePort: number) {
 
           if (isRotatingMember) {
             // This is a rotating member joining for Hải Tặc event
-            // Don't add to fixed member slots
-            console.log(`[Hải Tặc] Rotating member ${memberId} joined party`);
+            // Clear flag - new rotating member has joined
+            account.waitingForRotatingMemberOutParty = false;
 
-            // Count total party members (fixed 4 + rotating 1 = 5)
-            const fixedMemberCount = [
-              account.party.currentMember1,
-              account.party.currentMember2,
-              account.party.currentMember3,
-              account.party.currentMember4
-            ].filter((id) => id > 0).length;
+            // Add rotating member to currentMember4 slot
+            account.party.currentMember4 = memberId;
 
-            console.log(
-              `[Hải Tặc] Party now has ${fixedMemberCount + 1} members (4 fixed + 1 rotating)`
-            );
+            // Check if all 3 fixed members have joined (party should be: Leader + 3 fixed + 1 rotating = 5 total)
+            const hasAllFixedMembers =
+              account.party.currentMember1 > 0 &&
+              account.party.currentMember2 > 0 &&
+              account.party.currentMember3 > 0;
 
-            // Trigger autoCatchHaiTac when rotating member joins (party becomes 5)
-            autoCatchHaiTac(account, leaderId);
+            // Check leader's pet gem - if all gems are correct, restart walking
+            // Otherwise wait for gem change to complete
+            if (hasAllFixedMembers) {
+              // Check if all gems (character and pet) are correct
+              const allGemsCorrect = checkIfAllGemsCorrect(account);
+
+              if (allGemsCorrect) {
+                // All gems are correct, restart walking
+                autoCatchHaiTac(account, leaderId);
+              } else {
+                // Set flag to restart walking after gem change completes
+                account.waitingForHaitacWalkRestart = true;
+                // Trigger gem change check
+                autoChangeGem(account);
+              }
+            }
           } else {
             // Normal party member joining - add to appropriate slot
             if (memberId === account.party.member1Id) {
@@ -952,7 +1099,6 @@ function checkParty(A_0: number[], remotePort: number) {
       }
 
       default:
-        //console.log(`[checkParty] Unknown case: ${caseType}`);
         break;
     }
   } catch (error) {}
@@ -976,7 +1122,6 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
   if (!find) return;
   const account = clients[find[0]];
   if (!account) return;
-
   try {
     switch (A_0[5]) {
       case 1: {
@@ -985,12 +1130,8 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
           const text = API.byteToHexstring(A_0);
           const petId = API.hexToInt32(text.substring(22, 26));
 
-          console.log(`[checkDataPetInList] Pet caught: ID ${petId}`);
-
           // Check if this is Hải Tặc NPC (42550)
           if (petId === 42550) {
-            console.log(`[Hải Tặc] Player ${account.player._Id} caught Hải Tặc NPC 42550!`);
-
             // Check if this account is a rotating member in Hải Tặc event
             // Find the leader who is running Hải Tặc event with this account as rotating member
             const leaderId = account.party.currentPartyId;
@@ -1001,32 +1142,30 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
                 leaderClient?.currentEvent === 'haitac' &&
                 leaderClient.party.rotatingMembers?.includes(account.player._Id)
               ) {
-                console.log(
-                  `[Hải Tặc] Rotating member ${account.player._Id} leaving party after catching NPC`
-                );
+                // Set flag on leader to wait for rotating member to leave party
+                leaderClient.waitingForRotatingMemberOutParty = true;
 
                 // Stop leader's walking interval
                 if (leaderClient.haitacIntervalId) {
                   clearInterval(leaderClient.haitacIntervalId);
                   leaderClient.haitacIntervalId = undefined;
-                  console.log(`[Hải Tặc] Stopped leader's walking interval`);
                 }
 
                 // Send trainoff to leader to stop movement
                 sendPacketWithDelay(leaderClient.socket.context, PACKET.trainoff, 0);
 
-                // Rotating member leaves party
+                // Wait 1000ms after battle ends before leaving party (server rule)
+                // Rotating member leaves party after delay
                 const outPacket = API.outToParty(leaderId);
-                sendPacketWithDelay(account.socket.context, outPacket, 500);
-
                 console.log(
-                  `[Hải Tặc] Sent out party packet for rotating member ${account.player._Id}`
+                  `[Out Party] Rotating member ${account.player._Id} (${account.player._Name}) caught Hải Tặc pet, will leave party after 1000ms. Leader: ${leaderId}`
                 );
+                sendPacketWithDelay(account.socket.context, outPacket, 1000);
               }
             }
           }
         } catch (e) {
-          console.error('[checkDataPetInList] Error in case 1:', e);
+          // Error in case 1
         }
         break;
       }
@@ -1139,8 +1278,6 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
           charEquip: account.charEquip,
           pets: account.pets
         });
-
-        //console.log(`Loaded ${account.pets.length} pets for player ${find[0]}`);
         break;
       }
     }
@@ -1265,7 +1402,6 @@ function checkDataBag(A_0: number[], remotePort: number) {
         tuideo: account.tuideo,
         luulang: account.luulang
       });
-      //console.log('account.tuido', account.tuido);
       break;
     }
 
@@ -1321,7 +1457,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           luulang: account.luulang
         });
 
-        // Check if we're waiting for gems from bag
+        // Check if we're waiting for gems from bag or waiting for character gem change
         if (account.pendingGemChange) {
           // Check if the added item is the gem we're waiting for
           const expectedGemIds: number[] = [];
@@ -1341,8 +1477,8 @@ function checkDataBag(A_0: number[], remotePort: number) {
           }
 
           // Check if any of the expected gems are now in the bag
-          const gemFound = account.tuido.some((item) =>
-            expectedGemIds.includes(item._Id) && item._Sl > 0
+          const gemFound = account.tuido.some(
+            (item) => expectedGemIds.includes(item._Id) && item._Sl > 0
           );
 
           if (gemFound) {
@@ -1353,6 +1489,36 @@ function checkDataBag(A_0: number[], remotePort: number) {
             setTimeout(() => {
               autoChangeGem(account);
             }, 500);
+          }
+        } else if (account.waitingForCharGemChange) {
+          // Character gem change completed (bag updated), now change pet gem
+          account.waitingForCharGemChange = false;
+
+          // Wait a bit for server to process, then call autoChangeGem for pet
+          setTimeout(() => {
+            autoChangeGem(account);
+
+            // If waiting for Hải Tặc walk restart and gem is correct, restart walking
+            if (
+              account.waitingForHaitacWalkRestart &&
+              account.currentEvent === 'haitac' &&
+              !account.haitacIntervalId
+            ) {
+              if (!checkIfNeedsGemChange(account)) {
+                account.waitingForHaitacWalkRestart = false;
+                autoCatchHaiTac(account, account.player._Id);
+              }
+            }
+          }, 500);
+        } else if (
+          account.waitingForHaitacWalkRestart &&
+          account.currentEvent === 'haitac' &&
+          !account.haitacIntervalId
+        ) {
+          // Check if gem is now correct after bag update
+          if (!checkIfNeedsGemChange(account)) {
+            account.waitingForHaitacWalkRestart = false;
+            autoCatchHaiTac(account, account.player._Id);
           }
         }
       } catch {}
@@ -1404,7 +1570,7 @@ function checkDataBag(A_0: number[], remotePort: number) {
           luulang: account.luulang
         });
 
-        // Check if we're waiting for gems from bag (case 8: Add single item to specific slot)
+        // Check if we're waiting for gems from bag or waiting for character gem change (case 8: Add single item to specific slot)
         if (account.pendingGemChange) {
           const expectedGemIds: number[] = [];
           switch (account.pendingGemChange.element) {
@@ -1434,6 +1600,36 @@ function checkDataBag(A_0: number[], remotePort: number) {
                 autoChangeGem(account);
               }, 500);
             }
+          }
+        } else if (account.waitingForCharGemChange) {
+          // Character gem change completed (bag updated), now change pet gem
+          account.waitingForCharGemChange = false;
+
+          // Wait a bit for server to process, then call autoChangeGem for pet
+          setTimeout(() => {
+            autoChangeGem(account);
+
+            // If waiting for Hải Tặc walk restart and gem is correct, restart walking
+            if (
+              account.waitingForHaitacWalkRestart &&
+              account.currentEvent === 'haitac' &&
+              !account.haitacIntervalId
+            ) {
+              if (!checkIfNeedsGemChange(account)) {
+                account.waitingForHaitacWalkRestart = false;
+                autoCatchHaiTac(account, account.player._Id);
+              }
+            }
+          }, 500);
+        } else if (
+          account.waitingForHaitacWalkRestart &&
+          account.currentEvent === 'haitac' &&
+          !account.haitacIntervalId
+        ) {
+          // Check if gem is now correct after bag update
+          if (!checkIfNeedsGemChange(account)) {
+            account.waitingForHaitacWalkRestart = false;
+            autoCatchHaiTac(account, account.player._Id);
           }
         }
       } catch {}
@@ -1687,6 +1883,55 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
+
+        // Check if we're waiting for character gem change to complete
+        if (account.waitingForCharGemChange) {
+          // Check if the equipped item is in slot 5 (Đặc Thù - gem slot)
+          const equippedItemId = account.charEquip[5]?._Id || 0;
+          const gemIds = [23086, 23087, 23088, 23089, 23135, 23136, 23137, 23138];
+          if (equippedItemId > 0 && gemIds.includes(equippedItemId)) {
+            // Check if gem matches character element
+            const gemIsCorrect = checkGemMatchesElement(account, equippedItemId);
+
+            if (gemIsCorrect) {
+              // Character gem change completed and is correct, now change pet gem
+              account.waitingForCharGemChange = false;
+
+              // Wait a bit for server to process, then call autoChangeGem for pet
+              setTimeout(() => {
+                autoChangeGem(account);
+
+                // If waiting for Hải Tặc walk restart and all gems are correct, restart walking
+                if (
+                  account.waitingForHaitacWalkRestart &&
+                  account.currentEvent === 'haitac' &&
+                  !account.haitacIntervalId
+                ) {
+                  if (checkIfAllGemsCorrect(account)) {
+                    account.waitingForHaitacWalkRestart = false;
+                    autoCatchHaiTac(account, account.player._Id);
+                  }
+                }
+              }, 500);
+            } else {
+              // Gem is equipped but doesn't match, keep waiting or try again
+              account.waitingForCharGemChange = false;
+              setTimeout(() => {
+                autoChangeGem(account);
+              }, 500);
+            }
+          }
+        } else if (
+          account.waitingForHaitacWalkRestart &&
+          account.currentEvent === 'haitac' &&
+          !account.haitacIntervalId
+        ) {
+          // Check if all gems (character and pet) are now correct after equipment update
+          if (checkIfAllGemsCorrect(account)) {
+            account.waitingForHaitacWalkRestart = false;
+            autoCatchHaiTac(account, account.player._Id);
+          }
+        }
       } catch (error) {}
       break;
     }
@@ -1986,7 +2231,6 @@ function checkDataBag(A_0: number[], remotePort: number) {
         // Convert 4 bytes to int32
         const num15 = (A_0[6] << 24) | (A_0[7] << 16) | (A_0[8] << 8) | A_0[9];
         // TODO: Implement shopping list tracking if needed
-        //console.log('Shopping list flag:', num15);
       } catch (error) {}
       break;
     }
@@ -2170,11 +2414,9 @@ function checkDataBag(A_0: number[], remotePort: number) {
           // 	int num50 = API.HexToInt32(text3.Substring(0, 4));
           // 	int num51 = API.HexToInt32(text3.Substring(5, 2));
           // 	int stt13 = Items.Data_Items[num50]._Loai - 1;
-          //console.log('findItem', id);
           if (id > 0) {
             // Find item in DATA_ITEM to get loai (equipment category)
             const findItem = DATA_ITEM.find((e) => e[0] === id);
-            //console.log('findItem', findItem);
             if (findItem) {
               const item = {
                 _Id: id,
@@ -2208,8 +2450,6 @@ function checkDataBag(A_0: number[], remotePort: number) {
 
           text2 = text2.replace(text3, '');
         }
-
-        //console.log('Loaded character equipment:', equipList);
 
         // Update account's character equipment
         account.charEquip = equipList;
@@ -2443,10 +2683,39 @@ function checkTurn(A_0: number[], remotePort: number) {
 
   const leaderId = account.party.leaderId;
 
-  if (!isLeader && leaderId > 0) {
-    // This is a party member, increment the leader's turn counter
-    const leaderAccount = clients[leaderId];
+  if (!isLeader) {
+    // This is a party member (or potential party member)
+    // First try to find leader from configured leaderId
+    let leaderAccount = leaderId > 0 ? clients[leaderId] : null;
+
+    // If leader not found or leaderId is 0, check if this member is in someone else's party
+    // This handles rotating members in Hải Tặc event who might have incorrect leaderId
+    if (!leaderAccount) {
+      // First check if this member has a currentPartyId set (they joined a party)
+      if (account.party.currentPartyId > 0) {
+        leaderAccount = clients[account.party.currentPartyId];
+      }
+
+      // If still not found, try to find the actual party leader by checking if this member is in someone's currentMember slots
+      if (!leaderAccount) {
+        for (const [playerId, client] of Object.entries(clients)) {
+          if (client && client.party) {
+            if (
+              client.party.currentMember1 === account.player._Id ||
+              client.party.currentMember2 === account.player._Id ||
+              client.party.currentMember3 === account.player._Id ||
+              client.party.currentMember4 === account.player._Id
+            ) {
+              leaderAccount = client;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if (leaderAccount) {
+      // Increment turn counter
       leaderAccount.turn++;
 
       // Count how many members are currently in the party (including leader)
@@ -2458,12 +2727,15 @@ function checkTurn(A_0: number[], remotePort: number) {
 
       // If all members have taken their turn, trigger auto attack
       if (leaderAccount.turn >= memberCount) {
-        // Reset turn counter
+        // Reset turn counter immediately after checking
         leaderAccount.turn = 0;
 
         // Call autoAttack function
-        autoAttack(leaderAccount, leaderId);
+        autoAttack(leaderAccount, leaderAccount.player._Id);
       }
+    } else {
+      // Not in any party, treat as solo player
+      autoAttack(account, account.player._Id);
     }
   } else if (isLeader) {
     // This is the leader - increment own turn counter
@@ -2478,6 +2750,7 @@ function checkTurn(A_0: number[], remotePort: number) {
 
     // If all members have taken their turn
     if (account.turn >= memberCount) {
+      // Reset turn counter immediately after checking
       account.turn = 0;
 
       autoAttack(account, account.player._Id);
@@ -2568,7 +2841,6 @@ function characterAttack(account: ClientBot, skillId: number, location: string):
   // }
 
   const packet = `F4440A00320103${charColHex}${locationHex}${skillHex}0F16`;
-  console.log('packet', API.xorWithAD(packet));
   //59e9a7ad9facae af 03af 828a a2bb
   //59e9a7ad9facae af aeaf 828a a9c5
   sendPacketWithDelay(account.socket.context, API.xorWithAD(packet), 0);
@@ -2582,6 +2854,8 @@ function petAttack(account: ClientBot, skillId: number, location: string): void 
   if (!pet) {
     return;
   }
+
+  // Check if this is the leader's pet
 
   const skillHex = API.rearrangeSkillId(skillId);
   let locationHex = getFirstAliveEnemy(account.battleInfo);
@@ -2626,8 +2900,6 @@ function findHaiTacNPC(battleInfo: (Battleinfo | null)[]): string | null {
 
 // Auto attack function
 function autoAttack(account: ClientBot, leaderId: number) {
-  console.log('[autoAttack] Called for leader:', leaderId);
-
   // Check if this is Hải Tặc event
   if (account.currentEvent === 'haitac') {
     handleHaiTacBattle(account, leaderId);
@@ -2649,15 +2921,9 @@ function autoAttack(account: ClientBot, leaderId: number) {
 
 // Handle battle during Hải Tặc event
 function handleHaiTacBattle(account: ClientBot, leaderId: number) {
-  console.log('[handleHaiTacBattle] Processing battle for Hải Tặc event');
-
   // Find NPC 42550 in slots 0-9
   const haitacNPCLocation = findHaiTacNPC(account.battleInfo);
   const hasHaiTacNPC = haitacNPCLocation !== null;
-
-  console.log(
-    `[handleHaiTacBattle] NPC 42550 found: ${hasHaiTacNPC ? 'Yes at ' + haitacNPCLocation : 'No'}`
-  );
 
   // Get all party members
   const allMembers = [
@@ -2668,48 +2934,38 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
     account.party.currentMember4
   ].filter((id) => id > 0);
 
-  console.log('allMembers', allMembers);
-
   // Get rotating member (current one)
   const rotatingMemberId =
     account.party.rotatingMembers && account.party.currentRotatingIndex !== undefined
       ? account.party.rotatingMembers[account.party.currentRotatingIndex]
       : 0;
 
-  console.log('[handleHaiTacBattle] Members:', { allMembers, rotatingMemberId });
-
   // Process each member
   allMembers.forEach((memberId) => {
     const memberClient = clients[memberId];
-    if (!memberClient) return;
+    if (!memberClient) {
+      return;
+    }
 
     const isLeader = memberId === leaderId;
     const isRotating = memberId === rotatingMemberId;
 
     if (isLeader) {
       // Leader always uses skill 18001 (targets self)
-      console.log(`[handleHaiTacBattle] Leader ${memberId} using skill 18001`);
       characterAttack(memberClient, 18001, haitacNPCLocation || '');
     } else if (isRotating) {
       // Rotating member always uses skill 15002 (no pet)
-      console.log(`[handleHaiTacBattle] Rotating member ${memberId} using skill 15002`);
-      characterAttack(memberClient, 15002, haitacNPCLocation || '');
+      characterAttack(memberClient, !hasHaiTacNPC ? 17001 : 15002, haitacNPCLocation || '');
     } else {
       // Fixed members (2, 3, 4)
       const config = memberClient.battleSkillConfig;
 
       if (!hasHaiTacNPC) {
         // No NPC 42550: use defense skill 17001
-        console.log(
-          `[handleHaiTacBattle] Fixed member ${memberId} using defense skill 17001 (no NPC)`
-        );
         characterAttack(memberClient, 17001, haitacNPCLocation || '');
 
         // Pet also defends if exists
         if (memberClient.petBattle) {
-          console.log(
-            `[handleHaiTacBattle] Fixed member ${memberId} pet using defense skill 17001 (no NPC)`
-          );
           petAttack(memberClient, 17001, haitacNPCLocation || '');
         }
       } else {
@@ -2738,7 +2994,6 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
           charSkill = config.skillNormalChar;
         }
 
-        console.log(`[handleHaiTacBattle] Fixed member ${memberId} char using skill ${charSkill}`);
         characterAttack(memberClient, charSkill, haitacNPCLocation);
 
         // Pet attack if exists
@@ -2760,7 +3015,6 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
             petSkill = config.skillNormalPet;
           }
 
-          console.log(`[handleHaiTacBattle] Fixed member ${memberId} pet using skill ${petSkill}`);
           petAttack(memberClient, petSkill, haitacNPCLocation);
         }
       }
@@ -2774,35 +3028,34 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
 
     if (!hasHaiTacNPC) {
       // Defense
-      console.log(`[handleHaiTacBattle] Leader pet using defense skill 17001 (no NPC)`);
       petAttack(leaderClient, 17001, haitacNPCLocation || '');
     } else {
       // Priority skills
       let petSkill = 10000;
-      if (config?.skillClearPet && config.skillClearPet > 0) {
+      if (config?.skillClearPet && config.skillClearPet > 0 && config.skillClearPet !== 99999) {
         petSkill = config.skillClearPet;
-      } else if (config?.skillSpecialPet && config.skillSpecialPet > 0) {
+      } else if (
+        config?.skillSpecialPet &&
+        config.skillSpecialPet > 0 &&
+        config.skillSpecialPet !== 99999
+      ) {
         petSkill = config.skillSpecialPet;
-      } else if (config?.skillNormalPet && config.skillNormalPet > 0) {
+      } else if (
+        config?.skillNormalPet &&
+        config.skillNormalPet > 0 &&
+        config.skillNormalPet !== 99999
+      ) {
         petSkill = config.skillNormalPet;
       }
 
-      console.log(`[handleHaiTacBattle] Leader pet using skill ${petSkill}`);
       petAttack(leaderClient, petSkill, haitacNPCLocation);
     }
+  } else {
   }
 }
 
 // Auto catch Hải Tặc function
 function autoCatchHaiTac(account: ClientBot, leaderId: number) {
-  console.log('[autoCatchHaiTac] Called for leader:', leaderId);
-  console.log('[autoCatchHaiTac] Party members:', {
-    member1: account.party.currentMember1,
-    member2: account.party.currentMember2,
-    member3: account.party.currentMember3,
-    member4: account.party.currentMember4
-  });
-
   // Clear existing interval if any
   if (account.haitacIntervalId) {
     clearInterval(account.haitacIntervalId);
@@ -2811,7 +3064,6 @@ function autoCatchHaiTac(account: ClientBot, leaderId: number) {
 
   // Send trainon packet
   sendPacketWithDelay(account.socket.context, PACKET.trainon, 0);
-  console.log('[autoCatchHaiTac] Sent trainon packet');
 
   // Define walk coordinates
   const walkCoordinates = [
@@ -2825,7 +3077,6 @@ function autoCatchHaiTac(account: ClientBot, leaderId: number) {
     // Check if still in Hải Tặc event
     // Event should be cleared when all rotating members are done
     if (!account.currentEvent || account.currentEvent !== 'haitac') {
-      console.log('[autoCatchHaiTac] Event cleared. Stopping walk interval.');
       if (account.haitacIntervalId) {
         clearInterval(account.haitacIntervalId);
         account.haitacIntervalId = undefined;
@@ -2838,10 +3089,7 @@ function autoCatchHaiTac(account: ClientBot, leaderId: number) {
     const coord = walkCoordinates[randomIndex];
     const walkPacket = API.Walk(coord.x, coord.y);
     sendPacketWithDelay(account.socket.context, walkPacket, 0);
-    console.log(`[autoCatchHaiTac] Walking to (${coord.x}, ${coord.y})`);
   }, 2000);
-
-  console.log('[autoCatchHaiTac] Started walking interval');
 }
 
 function checkRemoveCC(A_0: number[], remotePort: number | null) {
@@ -2876,15 +3124,8 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
           slotIndex = slotIndex - 1;
         }
 
-        console.log('case 1', account.player._Id, statusType, slotIndex, slotReceive);
-
         if (!isNaN(slotIndex) && slotIndex >= 0 && slotIndex < 20) {
           const entity = account.battleInfo[slotIndex];
-
-          console.log(
-            `[checkRemoveCC] Slot ${slotIndex} - Entity exists:`,
-            entity !== null && entity !== undefined
-          );
 
           if (entity) {
             // Initialize _Statuses if it doesn't exist
@@ -2892,14 +3133,8 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
               entity._Statuses = [];
             }
 
-            console.log(
-              `[checkRemoveCC] Before clear - Slot ${slotIndex} (${entity._Name}) statuses:`,
-              JSON.stringify(entity._Statuses)
-            );
-
             switch (statusType) {
               case 1: // LIVE - Clear Hard CC statuses
-                console.log(`[checkRemoveCC] Slot ${slotIndex} - LIVE status, clearing HARD_CC`);
                 // Clear only Hard CC statuses
                 entity._Statuses = entity._Statuses.filter(
                   (skillId: number) => !LIST_HARD_CC.includes(skillId)
@@ -2907,32 +3142,20 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
                 break;
 
               case 2: // DEF - Clear all defense skills
-                console.log(`[checkRemoveCC] Slot ${slotIndex} - Clearing DEF statuses`);
-                console.log(`[checkRemoveCC] LIST_DEF:`, LIST_DEF);
                 entity._Statuses = entity._Statuses.filter(
                   (skillId: number) => !LIST_DEF.includes(skillId)
                 );
                 break;
 
               case 5: // BUFF - Clear all buff skills
-                console.log(`[checkRemoveCC] Slot ${slotIndex} - Clearing BUFF statuses`);
-                console.log(`[checkRemoveCC] LIST_BUFF:`, LIST_BUFF);
                 entity._Statuses = entity._Statuses.filter(
                   (skillId: number) => !LIST_BUFF.includes(skillId)
                 );
                 break;
 
               default:
-                console.log(
-                  `[checkRemoveCC] Slot ${slotIndex} - Unknown status type: ${statusType}`
-                );
                 break;
             }
-
-            console.log(
-              `[checkRemoveCC] After clear - Slot ${slotIndex} (${entity._Name}) statuses:`,
-              JSON.stringify(entity._Statuses)
-            );
 
             // Update the entity back to the battleInfo array
             account.battleInfo[slotIndex] = entity;
@@ -2945,9 +3168,6 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
               battle: account.battle
             });
           } else {
-            console.log(
-              `[checkRemoveCC] WARNING: No entity at slot ${slotIndex} to clear status from!`
-            );
           }
         }
         break;
@@ -2959,7 +3179,6 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
         const location = getLocation2(locationString);
 
         if (location !== null) {
-          console.log(`[checkRemoveCC] Clearing battle entity at position ${location - 1}`);
           clearDataBattleInPosition(account, location - 1);
 
           // Send update to renderer
@@ -2977,20 +3196,145 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
         // Login success case - likely not needed for battle CC removal
         // In C# this handles VIP packets and auto-equipment
         // Skipping implementation as it's not related to CC removal in battle
-        //console.log('[checkRemoveCC] Case 13 - Login success (not implemented)');
         break;
       }
 
       default:
-        //console.log(`[checkRemoveCC] Unknown case: ${caseType}`);
         break;
     }
   } catch (error) {}
 }
 
+// Helper function to check if gem matches character element
+function checkGemMatchesElement(account: ClientBot, gemId: number): boolean {
+  const thuocTinh = account.player._ThuocTinh; // Character element
+
+  switch (thuocTinh) {
+    case 1: // Địa
+      return gemId === 23086 || gemId === 23135;
+    case 2: // Thủy
+      return gemId === 23087 || gemId === 23136;
+    case 3: // Hỏa
+      return gemId === 23088 || gemId === 23137;
+    case 4: // Phong
+      return gemId === 23089 || gemId === 23138;
+    default:
+      return false;
+  }
+}
+
+// Helper function to check if character needs gem change
+function checkIfNeedsGemChange(account: ClientBot): boolean {
+  // Check if changeGemChar is enabled
+  if (!account.battleSkillConfig?.changeGemChar) {
+    return false;
+  }
+
+  // Check slot 6 (charEquip[5] - Đặc Thù slot)
+  const charEquipSlot5 = account.charEquip[5];
+  if (!charEquipSlot5) {
+    return true; // No gem equipped, needs change
+  }
+
+  const gemId = charEquipSlot5._Id;
+  return !checkGemMatchesElement(account, gemId);
+}
+
+// Helper function to check if pet gem matches pet element
+function checkPetGemMatchesElement(petElement: number, gemId: number): boolean {
+  switch (petElement) {
+    case 1: // Địa
+      return gemId === 23086 || gemId === 23135;
+    case 2: // Thủy
+      return gemId === 23087 || gemId === 23136;
+    case 3: // Hỏa
+      return gemId === 23088 || gemId === 23137;
+    case 4: // Phong
+      return gemId === 23089 || gemId === 23138;
+    default:
+      return false;
+  }
+}
+
+// Helper function to check if pet needs gem change
+function checkIfNeedsPetGemChange(account: ClientBot): boolean {
+  // Check if changeGemPet is enabled
+  if (!account.battleSkillConfig?.changeGemPet) {
+    return false;
+  }
+
+  // Check if pet is in battle
+  if (!account.petBattle) {
+    return false; // No pet in battle, no need to change
+  }
+
+  const petIndex = account.petBattle - 1;
+  const pet = account.pets[petIndex];
+  if (!pet) {
+    return false; // No pet found
+  }
+
+  const petGemId = pet._dacthu; // Pet equipment slot 5 (Đặc Thù)
+  const petId = pet._Id; // Pet NPC ID
+
+  // Get pet element from DATA_BATTLE_PET
+  const findNPC = DATA_BATTLE_PET.find((e) => e[0] === petId);
+  if (!findNPC) {
+    return false; // Pet not found in data
+  }
+
+  const elementString = findNPC[2]; // Element as string: "Địa", "Thủy", "Hỏa", "Phong"
+  let petElement = 0;
+  switch (elementString) {
+    case 'Địa':
+      petElement = 1;
+      break;
+    case 'Thủy':
+      petElement = 2;
+      break;
+    case 'Hỏa':
+      petElement = 3;
+      break;
+    case 'Phong':
+      petElement = 4;
+      break;
+  }
+
+  if (petElement === 0) {
+    return false; // Invalid element
+  }
+
+  // Check if gem matches pet element
+  return !checkPetGemMatchesElement(petElement, petGemId);
+}
+
+// Helper function to check if all gems (character and pet) are correct
+function checkIfAllGemsCorrect(account: ClientBot): boolean {
+  // Check if character gem change is needed
+  const needsCharGemChange = checkIfNeedsGemChange(account);
+
+  // Check if pet gem change is needed
+  const needsPetGemChange = checkIfNeedsPetGemChange(account);
+
+  // Check if gem changes are in progress
+  const charGemInProgress =
+    account.waitingForCharGemChange ||
+    (account.pendingGemChange && account.pendingGemChange.type === 'char');
+  const petGemInProgress = account.pendingGemChange && account.pendingGemChange.type === 'pet';
+
+  // All gems are correct if:
+  // 1. Character gem doesn't need change (or changeGemChar is disabled)
+  // 2. Pet gem doesn't need change (or changeGemPet is disabled or no pet)
+  // 3. No gem changes are in progress
+  return !needsCharGemChange && !needsPetGemChange && !charGemInProgress && !petGemInProgress;
+}
+
 // Auto change gem function for character and pet
 function autoChangeGem(account: ClientBot) {
   try {
+    // Track if character needs gem change
+    let charNeedsGemChange = false;
+
     // Check character gem
     if (account.battleSkillConfig?.changeGemChar) {
       const charEquipSlot5 = account.charEquip[5]; // Slot 5 is Đặc Thù (special equipment)
@@ -3017,6 +3361,8 @@ function autoChangeGem(account: ClientBot) {
 
         // If gem doesn't match element, find and equip correct gem
         if (!gemMatches) {
+          charNeedsGemChange = true; // Mark that character needs gem change
+
           // First, try to find matching gem directly in bag
           let gemFound = false;
           for (const item of account.tuido) {
@@ -3054,12 +3400,10 @@ function autoChangeGem(account: ClientBot) {
             if (shouldEquip) {
               // Equip character gem
               const packet = API.equipItem(stt, null);
-              console.log('packet', packet);
               if (account.socket.context) {
+                // Set flag to wait for bag update before changing pet gem
+                account.waitingForCharGemChange = true;
                 sendPacketWithDelay(account.socket.context, packet, 0);
-                console.log(
-                  `[autoChangeGem] Character: Equipped gem ${id2} from slot ${stt} for element ${thuocTinh} (replacing ${id})`
-                );
               }
               gemFound = true;
               break; // Found and equipped, exit loop
@@ -3093,15 +3437,13 @@ function autoChangeGem(account: ClientBot) {
                   // eslint-disable-next-line react-hooks/rules-of-hooks
                   const usePacket = API.useItem(item._Stt);
                   if (account.socket.context) {
-                    // Set flag to wait for gems
+                    // Set flags to wait for gems and bag update
                     account.pendingGemChange = {
                       type: 'char',
                       element: thuocTinh
                     };
-                    sendPacketWithDelay(account.socket.context, API.xorWithAD(usePacket), 0);
-                    console.log(
-                      `[autoChangeGem] Character: Using bag ${bagGemId} from slot ${item._Stt} for element ${thuocTinh}`
-                    );
+                    account.waitingForCharGemChange = true;
+                    sendPacketWithDelay(account.socket.context, usePacket, 0);
                   }
                   break;
                 }
@@ -3112,8 +3454,9 @@ function autoChangeGem(account: ClientBot) {
       }
     }
 
-    // Check pet gem
-    if (account.battleSkillConfig?.changeGemPet && account.petBattle) {
+    // Check pet gem - only if not waiting for character gem change
+    // If character needs gem change, wait for bag update before changing pet gem
+    if (account.battleSkillConfig?.changeGemPet && account.petBattle && !charNeedsGemChange) {
       const petIndex = account.petBattle - 1; // Convert to 0-based index
       const pet = account.pets[petIndex];
 
@@ -3199,9 +3542,6 @@ function autoChangeGem(account: ClientBot) {
                 const packet = API.equipItem(stt2, account.petBattle);
                 if (account.socket.context) {
                   sendPacketWithDelay(account.socket.context, packet, 0);
-                  console.log(
-                    `[autoChangeGem] Pet: Equipped gem ${id5} from slot ${stt2} for pet element ${thuoctinh} (replacing ${id3})`
-                  );
                 }
                 gemFound = true;
                 break; // Found and equipped, exit loop
@@ -3240,10 +3580,7 @@ function autoChangeGem(account: ClientBot) {
                         type: 'pet',
                         element: thuoctinh
                       };
-                      sendPacketWithDelay(account.socket.context, API.xorWithAD(usePacket), 0);
-                      console.log(
-                        `[autoChangeGem] Pet: Using bag ${bagGemId} from slot ${item._Stt} for element ${thuoctinh}`
-                      );
+                      sendPacketWithDelay(account.socket.context, usePacket, 0);
                     }
                     break;
                   }
@@ -3255,6 +3592,6 @@ function autoChangeGem(account: ClientBot) {
       }
     }
   } catch (error) {
-    console.error('[autoChangeGem] Error:', error);
+    // Error in autoChangeGem
   }
 }

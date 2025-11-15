@@ -12,7 +12,6 @@ function loadPictureItems() {
   const filePath = path.join(__dirname, 'Talk.dat');
 
   if (!fs.existsSync(filePath)) {
-    console.error('File not found:', filePath);
     return;
   }
 
@@ -44,12 +43,9 @@ function loadPictureItems() {
           break;
       }
     } catch (err) {
-      console.error('Parse error:', err.message);
       break;
     }
   }
-
-  console.log('Loaded items:', Data_Photos_item_bytes.size);
 }
 
 /**
@@ -58,7 +54,6 @@ function loadPictureItems() {
  */
 async function getPhotoItem(id, outputFolder = 'output') {
   if (!Data_Photos_item_bytes.has(id)) {
-    console.warn(`No photo found for ID ${id}`);
     return;
   }
 
@@ -102,11 +97,9 @@ async function getPhotoItem(id, outputFolder = 'output') {
       })
         .png()
         .toFile(outputPath);
-
-      console.log(`✅ Saved ${outputPath}`);
     })
     .catch((err) => {
-      console.error(`Failed to process image ${id}:`, err.message);
+      // Failed to process image
     });
 }
 

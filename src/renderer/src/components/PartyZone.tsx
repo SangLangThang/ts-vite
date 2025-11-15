@@ -39,7 +39,6 @@ export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: P
   // Sync with initial config - only on mount or when initialConfig changes
   useEffect(() => {
     if (initialConfig) {
-      console.log('PartyZone - syncing with initialConfig:', initialConfig);
       setPartyConfig(initialConfig);
     }
   }, [initialConfig]);
@@ -48,7 +47,6 @@ export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: P
     if (!selectedPlayerId) return;
 
     const handlePartyUpdate = (data: { id: number; party: PartyInfo }) => {
-      console.log('handlePartyUpdate', data);
       const party = data.party;
 
       // Only update partyStatus (current state from backend)
@@ -91,7 +89,6 @@ export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: P
       ...partyConfig,
       [`member${memberNum}Id`]: parseInt(value) || 0
     };
-    console.log('PartyZone - handleMemberIdChange, calling onConfigChange with:', newConfig);
     setPartyConfig(newConfig);
     onConfigChange(newConfig);
   };
@@ -101,7 +98,6 @@ export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: P
       ...partyConfig,
       qsMemberIndex: memberNum
     };
-    console.log('PartyZone - handleQsChange, calling onConfigChange with:', newConfig);
     setPartyConfig(newConfig);
     onConfigChange(newConfig);
   };
@@ -111,13 +107,11 @@ export function PartyZone({ selectedPlayerId, initialConfig, onConfigChange }: P
       ...partyConfig,
       leaderId: parseInt(value) || 0
     };
-    console.log('PartyZone - handleLeaderIdChange, calling onConfigChange with:', newConfig);
     setPartyConfig(newConfig);
     onConfigChange(newConfig);
   };
 
   const handleInviteMembers = () => {
-    console.log('PartyZone - handleInviteMembers called');
     // Send invite request to main process
     window.api.invitePartyMembers?.(selectedPlayerId, partyConfig);
   };

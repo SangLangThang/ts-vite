@@ -61,14 +61,11 @@ function parseItemDat() {
 
   // Check if item.dat exists
   if (!fs.existsSync(filePath)) {
-    console.error(`Error: File not found: ${filePath}`);
-    console.log('Please ensure item.dat is in the data folder.');
     return;
   }
 
   // Read the entire file
   const array15 = fs.readFileSync(filePath);
-  console.log(`Loaded file: ${filePath} (${array15.length} bytes)`);
 
   const Data_Items = [];
   let itemCount = 0;
@@ -247,37 +244,18 @@ function parseItemDat() {
 
       Data_Items.push(item);
       itemCount++;
-
-      if (itemCount % 100 === 0) {
-        console.log(`Processed ${itemCount} items...`);
-      }
     } catch (error) {
-      console.log(`Error at offset ${l}:`, error.message);
       break;
     }
   }
 
   // Save to JSON file
   fs.writeFileSync(outputJsonPath, JSON.stringify(Data_Items, null, 2));
-
-  console.log(`\n===== Extraction Complete =====`);
-  console.log(`Total items extracted: ${itemCount}`);
-  console.log(`Output file: ${outputJsonPath}`);
-  console.log(`===============================`);
-
-  // Display first few items as sample
-  if (Data_Items.length > 0) {
-    console.log(`\nSample items (first 3):`);
-    console.log(JSON.stringify(Data_Items.slice(0, 3), null, 2));
-  }
 }
 
 // Run the extraction
-console.log('===== Item.dat Parser =====');
-console.log('Parsing item data from item.dat...\n');
-
 try {
   parseItemDat();
 } catch (error) {
-  console.error('Error during parsing:', error);
+  // Error during parsing
 }

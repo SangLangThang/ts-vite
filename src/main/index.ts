@@ -6,7 +6,7 @@ import { writeFileSync, readFileSync } from 'fs';
 import icon from '../../resources/icon.png?asset';
 import API from '../helpers/API';
 import { updateClient, setRendererSend, getClient } from '../store/clients';
-import { onReceivePacket, remotePorts } from './packetHandlers';
+import { onReceivePacket, remotePorts, autoWarp } from './packetHandlers';
 import { setMainWindow, rendererSend } from './renderer';
 
 let proxyLocal: TcpProxy | null = null;
@@ -31,8 +31,7 @@ function createProxyLocal(): void {
     {
       hostname: PROXY_INFO.hostFake,
       upstream: function (context, data) {
-        console.log("upstream", data.toString("hex"));
-
+        //console.log('upstream', data.toString('hex'));
         if (API.compareString(data, 8, 10, 'ac')) {
           const id = API.findIDCharFromData(data);
           updateClient(id, context);
@@ -178,7 +177,6 @@ app.whenReady().then(() => {
       const leaderClient = getClient(data.playerId);
 
       if (!leaderClient || !leaderClient.socket.context) {
-        console.error('[IPC] Leader client not found or no context');
         return;
       }
 
@@ -189,7 +187,6 @@ app.whenReady().then(() => {
         : Array.isArray(rotatingMemberId) ? rotatingMemberId : [rotatingMemberId];
 
       if (rotatingIds.length === 0) {
-        console.error('[Hải Tặc] No valid rotating member IDs provided');
         return;
       }
 
@@ -198,21 +195,28 @@ app.whenReady().then(() => {
       leaderClient.party.currentRotatingIndex = 0;
       leaderClient.currentEvent = 'haitac';
 
-      console.log(`[Hải Tặc] Set event 'haitac' for leader ${data.playerId}`);
-      console.log(`[Hải Tặc] Rotating members: [${rotatingIds.join(', ')}]`);
+      // Find first available rotating member (skip if not found, continue to next)
+      let foundFirstMember = false;
+      for (let i = 0; i < rotatingIds.length; i++) {
+        const rotatingId = rotatingIds[i];
+        const rotatingClient = getClient(rotatingId);
 
-      // First rotating member sends invite to leader
-      const firstRotatingId = rotatingIds[0];
-      const rotatingClient = getClient(firstRotatingId);
-
-      if (!rotatingClient || !rotatingClient.socket.context) {
-        console.error(`[Hải Tặc] Rotating member ${firstRotatingId} client not found or no context`);
-        return;
+        if (rotatingClient && rotatingClient.socket.context) {
+          // Found valid rotating member, set index and send invite
+          leaderClient.party.currentRotatingIndex = i;
+          const packet = API.joinToParty(data.playerId);
+          sendPacketWithDelay(rotatingClient.socket.context, packet, 0);
+          foundFirstMember = true;
+          break;
+        }
       }
 
-      console.log(`[Hải Tặc] Rotating member ${firstRotatingId} sending invite to leader ${data.playerId}`);
-      const packet = API.joinToParty(data.playerId);
-      sendPacketWithDelay(rotatingClient.socket.context, packet, 0);
+      // If no rotating members found, clear the event
+      if (!foundFirstMember) {
+        leaderClient.currentEvent = undefined;
+        leaderClient.party.rotatingMembers = undefined;
+        leaderClient.party.currentRotatingIndex = undefined;
+      }
       return;
     }
 
@@ -221,13 +225,10 @@ app.whenReady().then(() => {
       const leaderClient = getClient(data.playerId);
 
       if (!leaderClient || !leaderClient.socket.context) {
-        console.error('[IPC] Leader client not found or no context');
         return;
       }
 
       const memberIds = [member1Id, member2Id, member3Id].filter((id) => id > 0);
-
-      console.log(`[Kéo Hải Tặc] Members [${memberIds.join(', ')}] sending invites to leader ${data.playerId}`);
 
       // Members send invites to leader
       memberIds.forEach((memberId, index) => {
@@ -235,8 +236,6 @@ app.whenReady().then(() => {
         if (memberClient && memberClient.socket.context) {
           const packet = API.joinToParty(data.playerId);
           sendPacketWithDelay(memberClient.socket.context, packet, index * 500);
-        } else {
-          console.warn(`[IPC] Member ${memberId} client not found or no context`);
         }
       });
       return;
@@ -246,7 +245,6 @@ app.whenReady().then(() => {
     const leaderClient = getClient(data.playerId);
 
     if (!leaderClient || !leaderClient.socket.context) {
-      console.error('[IPC] Leader client not found or no context');
       return;
     }
 
@@ -258,13 +256,26 @@ app.whenReady().then(() => {
       if (memberClient && memberClient.socket.context) {
         const packet = API.joinToParty(data.playerId);
         sendPacketWithDelay(memberClient.socket.context, packet, index * 500);
-      } else {
-        console.warn(`[IPC] Member ${memberId} client not found or no context`);
       }
     });
   });
 
   // Handle config save
+  ipcMain.on('quest:auto-quest', (_event, data: { playerId: number; warpId: number }) => {
+    const { playerId, warpId } = data;
+    const client = getClient(playerId);
+    if (client && client.socket.context) {
+      // Set current event to autoQuest
+      client.currentEvent = 'autoQuest';
+      // Store target map ID (warpId is the target map ID)
+      client.autoQuestTargetMapId = warpId;
+      client.autoQuestWarpPath = undefined;
+      
+      // Start auto warp
+      autoWarp(client, warpId);
+    }
+  });
+
   ipcMain.handle('config:save', async (_event, config: any) => {
     try {
       const { filePath } = await dialog.showSaveDialog({

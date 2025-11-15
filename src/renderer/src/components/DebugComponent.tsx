@@ -18,7 +18,6 @@ export function DebugComponent(): React.JSX.Element {
       const result = await window.api.debugXorWithAD(inputString);
       setXorResult(result);
     } catch (error) {
-      console.error('Error converting with xorWithAD:', error);
       setXorResult('Error: ' + error);
     }
   };
@@ -40,7 +39,6 @@ export function DebugComponent(): React.JSX.Element {
       setHexResult(result.hex);
       setRearrangedResult(result.rearranged);
     } catch (error) {
-      console.error('Error converting decimal to hex:', error);
       setHexResult('Error: ' + error);
       setRearrangedResult('');
     }

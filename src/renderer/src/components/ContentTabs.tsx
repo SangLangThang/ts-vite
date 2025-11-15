@@ -43,7 +43,6 @@ export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }:
             }
           }}
           onPartyConfigChange={(partyConfig) => {
-            console.log('ContentTabs - onPartyConfigChange called with:', partyConfig);
             if (selectedPlayerId) {
               const fullConfig = {
                 battleSkillConfig: playerConfig?.battleSkillConfig || {
@@ -67,7 +66,6 @@ export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }:
                 },
                 partyConfig: partyConfig
               };
-              console.log('ContentTabs - calling onUpdateConfig with playerId:', selectedPlayerId, 'config:', fullConfig);
               onUpdateConfig(selectedPlayerId, fullConfig);
             }
           }}
