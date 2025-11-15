@@ -9,9 +9,15 @@ export interface PartyConfig {
   leaderId: number;
 }
 
+export interface HaitacConfig {
+  fixedTeam: string; // Format: "leader,member1,member2,member3"
+  rotatingIds: string; // Format: "id1,id2,id3,..."
+}
+
 export interface PlayerConfig {
   partyConfig: PartyConfig;
   battleSkillConfig: BattleSkillConfig;
+  haitacConfig?: HaitacConfig;
 }
 
 export interface BattleSkillConfig {
@@ -50,6 +56,8 @@ export interface ClientBot {
   party: PartyInfo; // Party information
   battleSkillConfig?: BattleSkillConfig; // Battle skill configuration
   petBattle?: number;
+  currentEvent?: string; // Current event the client is running (e.g., 'haitac', 'gahaitac', etc.)
+  haitacIntervalId?: NodeJS.Timeout; // Interval ID for Hải Tặc walking loop
 }
 
 export interface ClientSocket {
@@ -268,6 +276,8 @@ export interface PartyInfo {
   currentMember4: number; // Currently joined member 4
   partyFull: boolean; // Whether all configured members have joined
   qsMemberIndex: number;
+  rotatingMembers?: number[]; // List of rotating member IDs for Hải Tặc event
+  currentRotatingIndex?: number; // Current index in rotating members list
 }
 
 export interface Tuido {

@@ -77,7 +77,11 @@ export function ContentTabs({ selectedPlayerId, playerConfigs, onUpdateConfig }:
       case 2:
         return <CombatComponent selectedPlayerId={selectedPlayerId} />
       case 3:
-        return <MissionComponent />
+        return <MissionComponent
+          selectedPlayerId={selectedPlayerId}
+          haitacConfig={playerConfig?.haitacConfig}
+          onConfigChange={onUpdateConfig}
+        />
       case 4:
         return <DebugComponent />
       default:

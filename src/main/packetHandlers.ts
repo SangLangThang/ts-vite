@@ -2,6 +2,7 @@
 import { sendPacketWithDelay } from '.';
 import API from '../helpers/API';
 import { DATA_BATTLE_PET, DATA_ITEM } from '../helpers/constant2';
+import { PACKET } from '../helpers/constant';
 import { clients, getListPlayer } from '../store/clients';
 import { Battleinfo, ClientBot } from '../types';
 import { rendererSend } from './renderer';
@@ -294,6 +295,14 @@ function checkBattle(A_0: number[], remotePort: number) {
               battle: account.battle
             });
 
+            // If this is Hải Tặc event, restart walking interval after battle ends
+            if (account.currentEvent === 'haitac' && !account.haitacIntervalId) {
+              console.log(
+                `[Hải Tặc] Battle ended. Restarting walking interval for player ${account.player._Id}`
+              );
+              //startHaitacWalking(account);
+            }
+
             // If battle was active, perform end battle cleanup
             // C# calls a() method here which likely handles battle end logic
           }
@@ -501,15 +510,25 @@ function checkParty(A_0: number[], remotePort: number) {
         // Party invite received (member wants to join your party)
         const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
 
-        // Check if this member is in your configured member list (you are the leader)
-        if (
-          memberId === account.party.member1Id ||
-          memberId === account.party.member2Id ||
-          memberId === account.party.member3Id ||
-          memberId === account.party.member4Id
-        ) {
+        // Check if client is running Hải Tặc event
+        if (account.currentEvent === 'haitac') {
+          // For Hải Tặc event, always accept party invite
+          console.log(
+            `[Hải Tặc Event] Leader ${account.player._Id} accepting party invite from member ${memberId}`
+          );
           const packet = API.leaderAcceptedPartyFrom(memberId);
           sendPacketWithDelay(account.socket.context, packet, 0);
+        } else {
+          // Normal party logic: Check if this member is in your configured member list (you are the leader)
+          if (
+            memberId === account.party.member1Id ||
+            memberId === account.party.member2Id ||
+            memberId === account.party.member3Id ||
+            memberId === account.party.member4Id
+          ) {
+            const packet = API.leaderAcceptedPartyFrom(memberId);
+            sendPacketWithDelay(account.socket.context, packet, 0);
+          }
         }
         break;
       }
@@ -518,19 +537,83 @@ function checkParty(A_0: number[], remotePort: number) {
         // Member left party
         const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(12, 20));
 
-        // Clear the member from current party
-        if (memberId === account.party.currentMember1) {
-          account.party.currentMember1 = 0;
-        } else if (memberId === account.party.currentMember2) {
-          account.party.currentMember2 = 0;
-        } else if (memberId === account.party.currentMember3) {
-          account.party.currentMember3 = 0;
-        } else if (memberId === account.party.currentMember4) {
-          account.party.currentMember4 = 0;
-        } else if (memberId === account.party.leaderId) {
-          account.party.currentPartyId = 0;
-        } else if (memberId === account.player._Id) {
-          account.party.currentPartyId = 0;
+        // Check if this is a rotating member leaving during Hải Tặc event
+        const isRotatingMember =
+          account.currentEvent === 'haitac' && account.party.rotatingMembers?.includes(memberId);
+
+        if (isRotatingMember) {
+          console.log(`[Hải Tặc] Rotating member ${memberId} left party`);
+
+          // Clear walking interval when rotating member leaves
+          if (account.haitacIntervalId) {
+            clearInterval(account.haitacIntervalId);
+            account.haitacIntervalId = undefined;
+            console.log(`[Hải Tặc] Cleared walking interval`);
+          }
+
+          // Move to next rotating member
+          if (
+            account.party.currentRotatingIndex !== undefined &&
+            account.party.rotatingMembers &&
+            account.party.currentRotatingIndex < account.party.rotatingMembers.length - 1
+          ) {
+            // Increment index to next rotating member
+            account.party.currentRotatingIndex++;
+            const nextRotatingId =
+              account.party.rotatingMembers[account.party.currentRotatingIndex];
+
+            console.log(
+              `[Hải Tặc] Inviting next rotating member ${nextRotatingId} (${account.party.currentRotatingIndex + 1}/${account.party.rotatingMembers.length})`
+            );
+
+            // Next rotating member sends invite to leader
+            const nextRotatingClient = clients[nextRotatingId];
+            if (nextRotatingClient && nextRotatingClient.socket.context) {
+              const packet = API.joinToParty(account.player._Id);
+              sendPacketWithDelay(nextRotatingClient.socket.context, packet, 500);
+            } else {
+              console.error(`[Hải Tặc] Next rotating member ${nextRotatingId} not found`);
+            }
+          } else {
+            // All rotating members have been processed
+            console.log(`[Hải Tặc] All rotating members completed. Clearing event.`);
+            account.currentEvent = undefined;
+            account.party.rotatingMembers = undefined;
+            account.party.currentRotatingIndex = undefined;
+          }
+        } else {
+          // Normal party member leaving - clear from appropriate slot
+          if (memberId === account.party.currentMember1) {
+            account.party.currentMember1 = 0;
+          } else if (memberId === account.party.currentMember2) {
+            account.party.currentMember2 = 0;
+          } else if (memberId === account.party.currentMember3) {
+            account.party.currentMember3 = 0;
+          } else if (memberId === account.party.currentMember4) {
+            account.party.currentMember4 = 0;
+          } else if (memberId === account.party.leaderId) {
+            account.party.currentPartyId = 0;
+            // Clear event when leaving party as leader
+            if (account.currentEvent) {
+              console.log(
+                `[Party] Clearing event '${account.currentEvent}' for player ${account.player._Id}`
+              );
+              account.currentEvent = undefined;
+              account.party.rotatingMembers = undefined;
+              account.party.currentRotatingIndex = undefined;
+            }
+          } else if (memberId === account.player._Id) {
+            account.party.currentPartyId = 0;
+            // Clear event when you leave party
+            if (account.currentEvent) {
+              console.log(
+                `[Party] Clearing event '${account.currentEvent}' for player ${account.player._Id}`
+              );
+              account.currentEvent = undefined;
+              account.party.rotatingMembers = undefined;
+              account.party.currentRotatingIndex = undefined;
+            }
+          }
         }
 
         // Check if party is still full
@@ -550,18 +633,43 @@ function checkParty(A_0: number[], remotePort: number) {
         const memberId = API.hexToInt32(API.byteToHexstring(A_0).substring(20, 28));
 
         if (account.player._Id === leaderId) {
-          // Add member to appropriate slot
-          if (memberId === account.party.member1Id) {
-            account.party.currentMember1 = memberId;
-          } else if (memberId === account.party.member2Id) {
-            account.party.currentMember2 = memberId;
-          } else if (memberId === account.party.member3Id) {
-            account.party.currentMember3 = memberId;
-          } else if (memberId === account.party.member4Id) {
-            account.party.currentMember4 = memberId;
-          }
+          // Check if this is a rotating member for Hải Tặc event
+          const isRotatingMember =
+            account.currentEvent === 'haitac' && account.party.rotatingMembers?.includes(memberId);
 
-          account.party.partyFull = checkPartyFull(account);
+          if (isRotatingMember) {
+            // This is a rotating member joining for Hải Tặc event
+            // Don't add to fixed member slots
+            console.log(`[Hải Tặc] Rotating member ${memberId} joined party`);
+
+            // Count total party members (fixed 4 + rotating 1 = 5)
+            const fixedMemberCount = [
+              account.party.currentMember1,
+              account.party.currentMember2,
+              account.party.currentMember3,
+              account.party.currentMember4
+            ].filter((id) => id > 0).length;
+
+            console.log(
+              `[Hải Tặc] Party now has ${fixedMemberCount + 1} members (4 fixed + 1 rotating)`
+            );
+
+            // Trigger autoCatchHaiTac when rotating member joins (party becomes 5)
+            autoCatchHaiTac(account, leaderId);
+          } else {
+            // Normal party member joining - add to appropriate slot
+            if (memberId === account.party.member1Id) {
+              account.party.currentMember1 = memberId;
+            } else if (memberId === account.party.member2Id) {
+              account.party.currentMember2 = memberId;
+            } else if (memberId === account.party.member3Id) {
+              account.party.currentMember3 = memberId;
+            } else if (memberId === account.party.member4Id) {
+              account.party.currentMember4 = memberId;
+            }
+
+            account.party.partyFull = checkPartyFull(account);
+          }
         } else if (account.player._Id === memberId) {
           // You joined a party
           if (account.party.currentPartyId === 0) {
@@ -616,6 +724,58 @@ function checkDataPetInList(A_0: number[], remotePort: number) {
 
   try {
     switch (A_0[5]) {
+      case 1: {
+        // Pet caught - check if it's Hải Tặc NPC 42550
+        try {
+          const text = API.byteToHexstring(A_0);
+          const petId = API.hexToInt32(text.substring(22, 26));
+
+          console.log(`[checkDataPetInList] Pet caught: ID ${petId}`);
+
+          // Check if this is Hải Tặc NPC (42550)
+          if (petId === 42550) {
+            console.log(`[Hải Tặc] Player ${account.player._Id} caught Hải Tặc NPC 42550!`);
+
+            // Check if this account is a rotating member in Hải Tặc event
+            // Find the leader who is running Hải Tặc event with this account as rotating member
+            const leaderId = account.party.currentPartyId;
+            if (leaderId > 0) {
+              const leaderClient = clients[leaderId];
+
+              if (
+                leaderClient?.currentEvent === 'haitac' &&
+                leaderClient.party.rotatingMembers?.includes(account.player._Id)
+              ) {
+                console.log(
+                  `[Hải Tặc] Rotating member ${account.player._Id} leaving party after catching NPC`
+                );
+
+                // Stop leader's walking interval
+                if (leaderClient.haitacIntervalId) {
+                  clearInterval(leaderClient.haitacIntervalId);
+                  leaderClient.haitacIntervalId = undefined;
+                  console.log(`[Hải Tặc] Stopped leader's walking interval`);
+                }
+
+                // Send trainoff to leader to stop movement
+                sendPacketWithDelay(leaderClient.socket.context, PACKET.trainoff, 0);
+
+                // Rotating member leaves party
+                const outPacket = API.outToParty(leaderId);
+                sendPacketWithDelay(account.socket.context, outPacket, 500);
+
+                console.log(
+                  `[Hải Tặc] Sent out party packet for rotating member ${account.player._Id}`
+                );
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[checkDataPetInList] Error in case 1:', e);
+        }
+        break;
+      }
+
       case 8: {
         // Parse pet list (from C# _ClientBot.cs line 6075-6181)
         account.pets = [];
@@ -2063,7 +2223,11 @@ function characterAttack(account: ClientBot, skillId: number, location: string):
   let locationHex = getFirstAliveEnemy(account.battleInfo);
   const charColHex = account.charCol.toString(16).padStart(2, '0');
 
-  if(listSkillMySelf.includes(skillId)){
+  if (location) {
+    locationHex = location;
+  }
+
+  if (listSkillMySelf.includes(skillId)) {
     locationHex = `03${charColHex}`;
   }
 
@@ -2081,7 +2245,7 @@ function characterAttack(account: ClientBot, skillId: number, location: string):
   // }
 
   const packet = `F4440A00320103${charColHex}${locationHex}${skillHex}0F16`;
-  console.log('packet', API.xorWithAD(packet))
+  console.log('packet', API.xorWithAD(packet));
   //59e9a7ad9facae af 03af 828a a2bb
   //59e9a7ad9facae af aeaf 828a a9c5
   sendPacketWithDelay(account.socket.context, API.xorWithAD(packet), 0);
@@ -2100,7 +2264,11 @@ function petAttack(account: ClientBot, skillId: number, location: string): void 
   let locationHex = getFirstAliveEnemy(account.battleInfo);
   const charColHex = account.charCol.toString(16).padStart(2, '0');
 
-  if(listSkillMySelf.includes(skillId)){
+  if (location) {
+    locationHex = location;
+  }
+
+  if (listSkillMySelf.includes(skillId)) {
     locationHex = `02${charColHex}`;
   }
 
@@ -2121,20 +2289,216 @@ function petAttack(account: ClientBot, skillId: number, location: string): void 
   sendPacketWithDelay(account.socket.context, API.xorWithAD(packet), 0);
 }
 
-// Auto attack function - to be implemented
-function autoAttack(_account: ClientBot, _leaderId: number) {
-  // TODO: Implement auto attack logic
-  console.log('[autoAttack] Called for leader:', _leaderId);
-  if (_account.battleSkillConfig?.autoAttack) {
-    const battleSkillConfig = _account.battleSkillConfig;
-
-    const skillCharUse = battleSkillConfig.skillNormalChar;
-    characterAttack(_account, skillCharUse, '');
-    if (_account.petBattle) {
-      const skillPetUse = battleSkillConfig.skillNormalPet;
-      petAttack(_account, skillPetUse, '');
+// Helper function to find first NPC 42550 in slots 0-9
+function findHaiTacNPC(battleInfo: (Battleinfo | null)[]): string | null {
+  for (let i = 0; i < 10; i++) {
+    const entity = battleInfo[i];
+    if (entity && entity._Id === 42550) {
+      // Return location hex for this position (1-10)
+      return getLocation(i + 1);
     }
   }
+  return null;
+}
+
+// Auto attack function
+function autoAttack(account: ClientBot, leaderId: number) {
+  console.log('[autoAttack] Called for leader:', leaderId);
+
+  // Check if this is Hải Tặc event
+  if (account.currentEvent === 'haitac') {
+    handleHaiTacBattle(account, leaderId);
+    return;
+  }
+
+  // Normal auto attack logic
+  if (account.battleSkillConfig?.autoAttack) {
+    const battleSkillConfig = account.battleSkillConfig;
+
+    const skillCharUse = battleSkillConfig.skillNormalChar;
+    characterAttack(account, skillCharUse, '');
+    if (account.petBattle) {
+      const skillPetUse = battleSkillConfig.skillNormalPet;
+      petAttack(account, skillPetUse, '');
+    }
+  }
+}
+
+// Handle battle during Hải Tặc event
+function handleHaiTacBattle(account: ClientBot, leaderId: number) {
+  console.log('[handleHaiTacBattle] Processing battle for Hải Tặc event');
+
+  // Find NPC 42550 in slots 0-9
+  const haitacNPCLocation = findHaiTacNPC(account.battleInfo);
+  const hasHaiTacNPC = haitacNPCLocation !== null;
+
+  console.log(
+    `[handleHaiTacBattle] NPC 42550 found: ${hasHaiTacNPC ? 'Yes at ' + haitacNPCLocation : 'No'}`
+  );
+
+  // Get all party members
+  const allMembers = [
+    leaderId,
+    account.party.currentMember1,
+    account.party.currentMember2,
+    account.party.currentMember3,
+    account.party.currentMember4
+  ].filter((id) => id > 0);
+
+  console.log('allMembers', allMembers)
+
+  // Get rotating member (current one)
+  const rotatingMemberId =
+    account.party.rotatingMembers && account.party.currentRotatingIndex !== undefined
+      ? account.party.rotatingMembers[account.party.currentRotatingIndex]
+      : 0;
+
+  console.log('[handleHaiTacBattle] Members:', { allMembers, rotatingMemberId });
+
+  // Process each member
+  allMembers.forEach((memberId) => {
+    const memberClient = clients[memberId];
+    if (!memberClient) return;
+
+    const isLeader = memberId === leaderId;
+    const isRotating = memberId === rotatingMemberId;
+
+    if (isLeader) {
+      // Leader always uses skill 18001 (targets self)
+      console.log(`[handleHaiTacBattle] Leader ${memberId} using skill 18001`);
+      characterAttack(memberClient, 18001, haitacNPCLocation || '');
+    } else if (isRotating) {
+      // Rotating member always uses skill 15002 (no pet)
+      console.log(`[handleHaiTacBattle] Rotating member ${memberId} using skill 15002`);
+      characterAttack(memberClient, 15002, haitacNPCLocation || '');
+    } else {
+      // Fixed members (2, 3, 4)
+      const config = memberClient.battleSkillConfig;
+
+      if (!hasHaiTacNPC) {
+        // No NPC 42550: use defense skill 17001
+        console.log(
+          `[handleHaiTacBattle] Fixed member ${memberId} using defense skill 17001 (no NPC)`
+        );
+        characterAttack(memberClient, 17001, haitacNPCLocation || '');
+
+        // Pet also defends if exists
+        if (memberClient.petBattle) {
+          console.log(
+            `[handleHaiTacBattle] Fixed member ${memberId} pet using defense skill 17001 (no NPC)`
+          );
+          petAttack(memberClient, 17001, haitacNPCLocation || '');
+        }
+      } else {
+        // Has NPC 42550: use priority skills
+        // Priority: skillClear > skillSpecial > skillNormal > 10000
+
+        // Character attack
+        let charSkill = 10000; // Default
+        if (config?.skillClearChar && config.skillClearChar > 0 && config.skillClearChar !== 99999) {
+          charSkill = config.skillClearChar;
+        } else if (config?.skillSpecialChar && config.skillSpecialChar > 0 && config.skillSpecialChar !== 99999) {
+          charSkill = config.skillSpecialChar;
+        } else if (config?.skillNormalChar && config.skillNormalChar > 0 && config.skillNormalChar !== 99999) {
+          charSkill = config.skillNormalChar;
+        }
+
+        console.log(`[handleHaiTacBattle] Fixed member ${memberId} char using skill ${charSkill}`);
+        characterAttack(memberClient, charSkill, haitacNPCLocation);
+
+        // Pet attack if exists
+        if (memberClient.petBattle) {
+          let petSkill = 10000; // Default
+          if (config?.skillClearPet && config.skillClearPet > 0 && config.skillClearPet !== 99999) {
+            petSkill = config.skillClearPet;
+          } else if (config?.skillSpecialPet && config.skillSpecialPet > 0 && config.skillSpecialPet !== 99999) {
+            petSkill = config.skillSpecialPet;
+          } else if (config?.skillNormalPet && config.skillNormalPet > 0 && config.skillNormalPet !== 99999) {
+            petSkill = config.skillNormalPet;
+          }
+
+          console.log(`[handleHaiTacBattle] Fixed member ${memberId} pet using skill ${petSkill}`);
+          petAttack(memberClient, petSkill, haitacNPCLocation);
+        }
+      }
+    }
+  });
+
+  // Also handle leader's pet
+  const leaderClient = clients[leaderId];
+  if (leaderClient?.petBattle) {
+    const config = leaderClient.battleSkillConfig;
+
+    if (!hasHaiTacNPC) {
+      // Defense
+      console.log(`[handleHaiTacBattle] Leader pet using defense skill 17001 (no NPC)`);
+      petAttack(leaderClient, 17001, haitacNPCLocation || '');
+    } else {
+      // Priority skills
+      let petSkill = 10000;
+      if (config?.skillClearPet && config.skillClearPet > 0) {
+        petSkill = config.skillClearPet;
+      } else if (config?.skillSpecialPet && config.skillSpecialPet > 0) {
+        petSkill = config.skillSpecialPet;
+      } else if (config?.skillNormalPet && config.skillNormalPet > 0) {
+        petSkill = config.skillNormalPet;
+      }
+
+      console.log(`[handleHaiTacBattle] Leader pet using skill ${petSkill}`);
+      petAttack(leaderClient, petSkill, haitacNPCLocation);
+    }
+  }
+}
+
+// Auto catch Hải Tặc function
+function autoCatchHaiTac(account: ClientBot, leaderId: number) {
+  console.log('[autoCatchHaiTac] Called for leader:', leaderId);
+  console.log('[autoCatchHaiTac] Party members:', {
+    member1: account.party.currentMember1,
+    member2: account.party.currentMember2,
+    member3: account.party.currentMember3,
+    member4: account.party.currentMember4
+  });
+
+  // Clear existing interval if any
+  if (account.haitacIntervalId) {
+    clearInterval(account.haitacIntervalId);
+    account.haitacIntervalId = undefined;
+  }
+
+  // Send trainon packet
+  sendPacketWithDelay(account.socket.context, PACKET.trainon, 0);
+  console.log('[autoCatchHaiTac] Sent trainon packet');
+
+  // Define walk coordinates
+  const walkCoordinates = [
+    { x: 1462, y: 1155 },
+    { x: 1642, y: 1135 },
+    { x: 1522, y: 1215 }
+  ];
+
+  // Start walking interval (every 2000ms)
+  account.haitacIntervalId = setInterval(() => {
+    // Check if still in Hải Tặc event
+    // Event should be cleared when all rotating members are done
+    if (!account.currentEvent || account.currentEvent !== 'haitac') {
+      console.log('[autoCatchHaiTac] Event cleared. Stopping walk interval.');
+      if (account.haitacIntervalId) {
+        clearInterval(account.haitacIntervalId);
+        account.haitacIntervalId = undefined;
+      }
+      return;
+    }
+
+    // Random walk coordinate
+    const randomIndex = Math.floor(Math.random() * walkCoordinates.length);
+    const coord = walkCoordinates[randomIndex];
+    const walkPacket = API.Walk(coord.x, coord.y);
+    sendPacketWithDelay(account.socket.context, walkPacket, 0);
+    console.log(`[autoCatchHaiTac] Walking to (${coord.x}, ${coord.y})`);
+  }, 2000);
+
+  console.log('[autoCatchHaiTac] Started walking interval');
 }
 
 function checkRemoveCC(A_0: number[], remotePort: number | null) {

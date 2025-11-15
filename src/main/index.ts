@@ -31,7 +31,7 @@ function createProxyLocal(): void {
     {
       hostname: PROXY_INFO.hostFake,
       upstream: function (context, data) {
-        console.log("upstream", data.toString("hex"));
+        //console.log("upstream", data.toString("hex"));
 
         if (API.compareString(data, 8, 10, 'ac')) {
           const id = API.findIDCharFromData(data);
@@ -171,6 +171,78 @@ app.whenReady().then(() => {
 
   // Handle party invite
   ipcMain.on('party:invite-members', (_event, data: { playerId: number; partyConfig: any }) => {
+    const { member1Id, member2Id, member3Id, member4Id, rotatingMemberId } = data.partyConfig;
+
+    // Scenario 1: Rotating member invites to leader (Start Hải Tặc)
+    if (rotatingMemberId !== undefined) {
+      const leaderClient = getClient(data.playerId);
+
+      if (!leaderClient || !leaderClient.socket.context) {
+        console.error('[IPC] Leader client not found or no context');
+        return;
+      }
+
+      // This is the initial call - rotatingMemberId contains the full array of rotating IDs
+      // Parse it as comma-separated string or array
+      const rotatingIds = typeof rotatingMemberId === 'string'
+        ? rotatingMemberId.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id) && id > 0)
+        : Array.isArray(rotatingMemberId) ? rotatingMemberId : [rotatingMemberId];
+
+      if (rotatingIds.length === 0) {
+        console.error('[Hải Tặc] No valid rotating member IDs provided');
+        return;
+      }
+
+      // Store rotating members list and set current index to 0
+      leaderClient.party.rotatingMembers = rotatingIds;
+      leaderClient.party.currentRotatingIndex = 0;
+      leaderClient.currentEvent = 'haitac';
+
+      console.log(`[Hải Tặc] Set event 'haitac' for leader ${data.playerId}`);
+      console.log(`[Hải Tặc] Rotating members: [${rotatingIds.join(', ')}]`);
+
+      // First rotating member sends invite to leader
+      const firstRotatingId = rotatingIds[0];
+      const rotatingClient = getClient(firstRotatingId);
+
+      if (!rotatingClient || !rotatingClient.socket.context) {
+        console.error(`[Hải Tặc] Rotating member ${firstRotatingId} client not found or no context`);
+        return;
+      }
+
+      console.log(`[Hải Tặc] Rotating member ${firstRotatingId} sending invite to leader ${data.playerId}`);
+      const packet = API.joinToParty(data.playerId);
+      sendPacketWithDelay(rotatingClient.socket.context, packet, 0);
+      return;
+    }
+
+    // Scenario 2: Fixed members invite to leader (Start Kéo Hải Tặc)
+    if (member1Id || member2Id || member3Id) {
+      const leaderClient = getClient(data.playerId);
+
+      if (!leaderClient || !leaderClient.socket.context) {
+        console.error('[IPC] Leader client not found or no context');
+        return;
+      }
+
+      const memberIds = [member1Id, member2Id, member3Id].filter((id) => id > 0);
+
+      console.log(`[Kéo Hải Tặc] Members [${memberIds.join(', ')}] sending invites to leader ${data.playerId}`);
+
+      // Members send invites to leader
+      memberIds.forEach((memberId, index) => {
+        const memberClient = getClient(memberId);
+        if (memberClient && memberClient.socket.context) {
+          const packet = API.joinToParty(data.playerId);
+          sendPacketWithDelay(memberClient.socket.context, packet, index * 500);
+        } else {
+          console.warn(`[IPC] Member ${memberId} client not found or no context`);
+        }
+      });
+      return;
+    }
+
+    // Scenario 3: Legacy behavior - leader invites members
     const leaderClient = getClient(data.playerId);
 
     if (!leaderClient || !leaderClient.socket.context) {
@@ -178,7 +250,6 @@ app.whenReady().then(() => {
       return;
     }
 
-    const { member1Id, member2Id, member3Id, member4Id } = data.partyConfig;
     const memberIds = [member1Id, member2Id, member3Id, member4Id].filter((id) => id > 0);
 
     // Send invite packets to each member
@@ -248,6 +319,9 @@ app.whenReady().then(() => {
             if (playerConfig.battleSkillConfig) {
               client.battleSkillConfig = playerConfig.battleSkillConfig;
             }
+
+            // Hải Tặc config is handled by renderer only (not stored in client)
+            // It will be loaded by MissionComponent from the config file
 
             // Notify renderer about the updates
             rendererSend('player:party-update', {
