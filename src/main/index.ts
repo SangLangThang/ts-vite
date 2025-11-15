@@ -31,7 +31,7 @@ function createProxyLocal(): void {
     {
       hostname: PROXY_INFO.hostFake,
       upstream: function (context, data) {
-        //console.log("upstream", data.toString("hex"));
+        console.log("upstream", data.toString("hex"));
 
         if (API.compareString(data, 8, 10, 'ac')) {
           const id = API.findIDCharFromData(data);

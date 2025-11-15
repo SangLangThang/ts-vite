@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { sendPacketWithDelay } from '.';
 import API from '../helpers/API';
-import { DATA_BATTLE_PET, DATA_ITEM } from '../helpers/constant2';
+import { DATA_BATTLE_PET, DATA_ITEM, DATA_BATTLE_SKILL } from '../helpers/constant2';
 import { PACKET } from '../helpers/constant';
 import { clients, getListPlayer } from '../store/clients';
 import { Battleinfo, ClientBot } from '../types';
@@ -180,8 +180,260 @@ function checkLogin(A_0: number[], remotePort: number) {
   }
 }
 
-function checkFinishDialog(_A_0: any, _remotePort: any) {
-  // TODO: Implement checkFinishDialog
+function checkFinishDialog(A_0: number[], remotePort: number) {
+  try {
+    const find = remotePorts.find((e) => e[1] == remotePort);
+    if (!find) return;
+    const account = clients[find[0]];
+    if (!account) return;
+
+    switch (A_0[5]) {
+      case 2:
+        if (A_0.length >= 8) {
+          // const num7 = parseInt(
+          //   API.byteToHexstring([A_0[9], A_0[8], A_0[7], A_0[6]]),
+          //   16
+          // );
+          let value3 = '';
+          for (let j = A_0.length - 1; j >= 0 && A_0[j] !== 0; j--) {
+            value3 = String(A_0[j]) + value3;
+          }
+        }
+        break;
+
+      case 4:
+        if (A_0.length >= 8) {
+          // const num5 = parseInt(
+          //   API.byteToHexstring([A_0[9], A_0[8], A_0[7], A_0[6]]),
+          //   16
+          // );
+          let text2 = '';
+          for (let i = A_0.length - 1; i >= 0 && A_0[i] !== 0; i--) {
+            text2 = String.fromCharCode(A_0[i]) + text2;
+          }
+        }
+        break;
+
+      case 3: {
+        // _Value_Item_OnMap = A_0[32]; // TODO: Implement if needed
+        account.player._ThuocTinh = A_0[6];
+        account.player._Lv = A_0[23];
+        account.player._ExpTotal = parseInt(
+          API.byteToHexstring([A_0[27], A_0[26], A_0[25], A_0[24]]),
+          16
+        );
+        account.player._Point = parseInt(API.byteToHexstring([A_0[31], A_0[30]]), 16);
+
+        // TODO: Implement Texps lookup - for now, skip exp calculation
+        // const texp = Texps.Texps[account.player._Lv];
+        // const texp2 = Texps.Texps[account.player._Lv - 1];
+        // switch (account.player._Reborn) {
+        //   case 0:
+        //     account.player._Exp = account.player._ExpTotal - texp2._0 - 5;
+        //     account.player._ExpMax = texp._0 - texp2._0;
+        //     break;
+        //   case 1:
+        //     account.player._Exp = account.player._ExpTotal - texp._1 - 5;
+        //     account.player._ExpMax = texp._1 - texp2._1;
+        //     break;
+        //   case 2:
+        //     account.player._Exp = account.player._ExpTotal - texp._2 - 5;
+        //     account.player._ExpMax = texp._2 - texp2._2;
+        //     break;
+        // }
+
+        account.player._Hp = parseInt(API.byteToHexstring([A_0[8], A_0[7]]), 16);
+        account.player._Sp = parseInt(API.byteToHexstring([A_0[10], A_0[9]]), 16);
+        account.player._Int = parseInt(API.byteToHexstring([A_0[12], A_0[11]]), 16);
+        account.player._Atk = parseInt(API.byteToHexstring([A_0[14], A_0[13]]), 16);
+        account.player._Def = parseInt(API.byteToHexstring([A_0[16], A_0[15]]), 16);
+        account.player._Agi = parseInt(API.byteToHexstring([A_0[18], A_0[17]]), 16);
+        account.player._Hpx = parseInt(API.byteToHexstring([A_0[20], A_0[19]]), 16);
+        account.player._Spx = parseInt(API.byteToHexstring([A_0[22], A_0[21]]), 16);
+        account.player._HpMax = parseInt(API.byteToHexstring([A_0[37], A_0[36]]), 16);
+        account.player._SpMax = parseInt(API.byteToHexstring([A_0[39], A_0[38]]), 16);
+        account.player._Atk2 = parseInt(
+          API.byteToHexstring([A_0[43], A_0[42], A_0[41], A_0[40]]),
+          16
+        );
+        account.player._Def2 = parseInt(
+          API.byteToHexstring([A_0[47], A_0[46], A_0[45], A_0[44]]),
+          16
+        );
+        account.player._Int2 = parseInt(
+          API.byteToHexstring([A_0[51], A_0[50], A_0[49], A_0[48]]),
+          16
+        );
+        account.player._Agi2 = parseInt(
+          API.byteToHexstring([A_0[55], A_0[54], A_0[53], A_0[52]]),
+          16
+        );
+        account.player._Hpx2 = parseInt(
+          API.byteToHexstring([A_0[59], A_0[58], A_0[57], A_0[56]]),
+          16
+        );
+        account.player._Spx2 = parseInt(
+          API.byteToHexstring([A_0[63], A_0[62], A_0[61], A_0[60]]),
+          16
+        );
+
+        if (account.player._Int2 >= 0) {
+          account.player._Int_Plus1 = 1;
+        } else {
+          account.player._Int_Plus1 = 0;
+        }
+        if (account.player._Atk2 >= 0) {
+          account.player._Atk_Plus1 = 1;
+        } else {
+          account.player._Atk_Plus1 = 0;
+        }
+        if (account.player._Def2 >= 0) {
+          account.player._Def_Plus1 = 1;
+        } else {
+          account.player._Def_Plus1 = 0;
+        }
+        if (account.player._Agi2 >= 0) {
+          account.player._Agi_Plus1 = 1;
+        } else {
+          account.player._Agi_Plus1 = 0;
+        }
+        if (account.player._Hpx2 >= 0) {
+          account.player._Hpx_Plus1 = 1;
+        } else {
+          account.player._Hpx_Plus1 = 0;
+        }
+        if (account.player._Spx2 >= 0) {
+          account.player._Spx_Plus1 = 1;
+        } else {
+          account.player._Spx_Plus1 = 0;
+        }
+
+        // Initialize character skill list if not exists
+        if (!account.charListSkill) {
+          account.charListSkill = [];
+        }
+        account.charListSkill = [];
+        account.charListSkill.push(10000);
+        account.charListSkill.push(17001);
+        account.charListSkill.push(18001);
+
+        let text = '';
+        if (A_0.length > 117) {
+          const byteArray = API.byteArrayToByteArray(A_0, 117, A_0.length - 117);
+          text = API.byteToHexstring(Array.from(byteArray));
+        }
+        let num = 0;
+        do {
+          if (num + 4 > text.length) break;
+          const num2 = API.hexToInt32(text.substring(num, num + 4));
+
+          // Check if skill exists in DATA_BATTLE_SKILL
+          const skillExists = DATA_BATTLE_SKILL.some((skill) => skill[0] === num2);
+          if (!skillExists) {
+            break;
+          }
+
+          // Handle special skills
+          // if (num2 === 14002) {
+          //   skilldaotau = 14002;
+          // }
+          // if (num2 === 11013) {
+          //   skillHoiSinh = 11013;
+          // }
+          // if (num2 === 14003) {
+          //   skill_buonban = API.hexToInt32(text.substring(num + 4, num + 6));
+          // }
+
+          account.charListSkill.push(num2);
+          num += 6;
+        } while (num <= 500);
+
+        if (account.player._Reborn === 3) {
+          const num3 = A_0.length - 4;
+          account.player._Lv2 = parseInt(API.byteToHexstring([A_0[num3 - 20], A_0[num3 - 21]]), 16);
+          account.player._ExpTotal = parseInt(
+            API.byteToHexstring([
+              A_0[num3 - 12],
+              A_0[num3 - 13],
+              A_0[num3 - 14],
+              A_0[num3 - 15],
+              A_0[num3 - 16],
+              A_0[num3 - 17],
+              A_0[num3 - 18],
+              A_0[num3 - 19]
+            ]),
+            16
+          );
+          account.player._Int3 = parseInt(
+            API.byteToHexstring([A_0[num3 - 10], A_0[num3 - 11]]),
+            16
+          );
+          account.player._Atk3 = parseInt(API.byteToHexstring([A_0[num3 - 8], A_0[num3 - 9]]), 16);
+          account.player._Def3 = parseInt(API.byteToHexstring([A_0[num3 - 6], A_0[num3 - 7]]), 16);
+          account.player._Hpx3 = parseInt(API.byteToHexstring([A_0[num3 - 2], A_0[num3 - 3]]), 16);
+          account.player._Spx3 = parseInt(API.byteToHexstring([A_0[num3], A_0[num3 - 1]]), 16);
+
+          // TODO: Implement Texps lookup for reborn level 3
+          // if (account.player._Lv2 === 0) {
+          //   const texp = Texps.Texps[account.player._Lv2];
+          //   account.player._Exp = account.player._ExpTotal;
+          //   account.player._ExpMax = texp._3;
+          // } else {
+          //   const texp = Texps.Texps[account.player._Lv2];
+          //   const texp2 = Texps.Texps[account.player._Lv2 - 1];
+          //   account.player._Exp = account.player._ExpTotal - texp2._3;
+          //   account.player._ExpMax = texp._3 - texp2._3;
+          // }
+
+          const num4 = parseInt(
+            API.byteToHexstring([A_0[A_0.length - 2], A_0[A_0.length - 3]]),
+            16
+          );
+          if (num4 > 0) {
+            account.charListSkill.push(num4);
+          }
+        }
+
+        // Update player in clients list (Data_Players equivalent)
+        if (clients[account.player._Id]) {
+          const existingPlayer = clients[account.player._Id];
+          existingPlayer.player._Id = account.player._Id;
+          existingPlayer.player._Name = account.player._Name;
+          existingPlayer.player._Lv = account.player._Lv;
+          existingPlayer.player._MapId = account.player._MapId;
+          existingPlayer.player._MapX = account.player._MapX;
+          existingPlayer.player._MapY = account.player._MapY;
+          existingPlayer.player._Reborn = account.player._Reborn;
+          existingPlayer.player._ThuocTinh = account.player._ThuocTinh;
+          // _Online = "ON" - handled by _PlayerOnline flag
+          existingPlayer.player._PlayerOnline = 1;
+        } else {
+          // Player doesn't exist in clients, but account already has the data
+          account.player._PlayerOnline = 1;
+        }
+
+        // Send update to renderer
+        rendererSend('player:login', {
+          id: account.player._Id,
+          name: account.player._Name,
+          mapId: account.player._MapId,
+          status: 'Online',
+          player: account.player
+        });
+
+        rendererSend('player:list-update', {
+          listPlayer: getListPlayer()
+        });
+
+        // Auto change gem after login
+        autoChangeGem(account);
+
+        break;
+      }
+    }
+  } catch (ex) {
+    // Ignore errors
+  }
 }
 
 function check6(_A_0: any, _remotePort: any) {
@@ -305,6 +557,9 @@ function checkBattle(A_0: number[], remotePort: number) {
 
             // If battle was active, perform end battle cleanup
             // C# calls a() method here which likely handles battle end logic
+
+            // Auto change gem after battle ends
+            autoChangeGem(account);
           }
         }
         break;
@@ -1065,6 +1320,41 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
+
+        // Check if we're waiting for gems from bag
+        if (account.pendingGemChange) {
+          // Check if the added item is the gem we're waiting for
+          const expectedGemIds: number[] = [];
+          switch (account.pendingGemChange.element) {
+            case 1: // Địa
+              expectedGemIds.push(23086, 23135);
+              break;
+            case 2: // Thủy
+              expectedGemIds.push(23087, 23136);
+              break;
+            case 3: // Hỏa
+              expectedGemIds.push(23088, 23137);
+              break;
+            case 4: // Phong
+              expectedGemIds.push(23089, 23138);
+              break;
+          }
+
+          // Check if any of the expected gems are now in the bag
+          const gemFound = account.tuido.some((item) =>
+            expectedGemIds.includes(item._Id) && item._Sl > 0
+          );
+
+          if (gemFound) {
+            // Clear pending flag and call autoChangeGem again
+            account.pendingGemChange = undefined;
+
+            // Wait a bit for server to process the items, then call autoChangeGem
+            setTimeout(() => {
+              autoChangeGem(account);
+            }, 500);
+          }
+        }
       } catch {}
       break;
     }
@@ -1113,6 +1403,39 @@ function checkDataBag(A_0: number[], remotePort: number) {
           tuideo: account.tuideo,
           luulang: account.luulang
         });
+
+        // Check if we're waiting for gems from bag (case 8: Add single item to specific slot)
+        if (account.pendingGemChange) {
+          const expectedGemIds: number[] = [];
+          switch (account.pendingGemChange.element) {
+            case 1: // Địa
+              expectedGemIds.push(23086, 23135);
+              break;
+            case 2: // Thủy
+              expectedGemIds.push(23087, 23136);
+              break;
+            case 3: // Hỏa
+              expectedGemIds.push(23088, 23137);
+              break;
+            case 4: // Phong
+              expectedGemIds.push(23089, 23138);
+              break;
+          }
+
+          // Check if the added item is the gem we're waiting for
+          if (arrayIndex >= 0 && arrayIndex < account.tuido.length) {
+            const addedItem = account.tuido[arrayIndex];
+            if (expectedGemIds.includes(addedItem._Id) && addedItem._Sl > 0) {
+              // Clear pending flag and call autoChangeGem again
+              account.pendingGemChange = undefined;
+
+              // Wait a bit for server to process the items, then call autoChangeGem
+              setTimeout(() => {
+                autoChangeGem(account);
+              }, 500);
+            }
+          }
+        }
       } catch {}
       break;
     }
@@ -2345,7 +2668,7 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
     account.party.currentMember4
   ].filter((id) => id > 0);
 
-  console.log('allMembers', allMembers)
+  console.log('allMembers', allMembers);
 
   // Get rotating member (current one)
   const rotatingMemberId =
@@ -2395,11 +2718,23 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
 
         // Character attack
         let charSkill = 10000; // Default
-        if (config?.skillClearChar && config.skillClearChar > 0 && config.skillClearChar !== 99999) {
+        if (
+          config?.skillClearChar &&
+          config.skillClearChar > 0 &&
+          config.skillClearChar !== 99999
+        ) {
           charSkill = config.skillClearChar;
-        } else if (config?.skillSpecialChar && config.skillSpecialChar > 0 && config.skillSpecialChar !== 99999) {
+        } else if (
+          config?.skillSpecialChar &&
+          config.skillSpecialChar > 0 &&
+          config.skillSpecialChar !== 99999
+        ) {
           charSkill = config.skillSpecialChar;
-        } else if (config?.skillNormalChar && config.skillNormalChar > 0 && config.skillNormalChar !== 99999) {
+        } else if (
+          config?.skillNormalChar &&
+          config.skillNormalChar > 0 &&
+          config.skillNormalChar !== 99999
+        ) {
           charSkill = config.skillNormalChar;
         }
 
@@ -2411,9 +2746,17 @@ function handleHaiTacBattle(account: ClientBot, leaderId: number) {
           let petSkill = 10000; // Default
           if (config?.skillClearPet && config.skillClearPet > 0 && config.skillClearPet !== 99999) {
             petSkill = config.skillClearPet;
-          } else if (config?.skillSpecialPet && config.skillSpecialPet > 0 && config.skillSpecialPet !== 99999) {
+          } else if (
+            config?.skillSpecialPet &&
+            config.skillSpecialPet > 0 &&
+            config.skillSpecialPet !== 99999
+          ) {
             petSkill = config.skillSpecialPet;
-          } else if (config?.skillNormalPet && config.skillNormalPet > 0 && config.skillNormalPet !== 99999) {
+          } else if (
+            config?.skillNormalPet &&
+            config.skillNormalPet > 0 &&
+            config.skillNormalPet !== 99999
+          ) {
             petSkill = config.skillNormalPet;
           }
 
@@ -2643,4 +2986,275 @@ function checkRemoveCC(A_0: number[], remotePort: number | null) {
         break;
     }
   } catch (error) {}
+}
+
+// Auto change gem function for character and pet
+function autoChangeGem(account: ClientBot) {
+  try {
+    // Check character gem
+    if (account.battleSkillConfig?.changeGemChar) {
+      const charEquipSlot5 = account.charEquip[5]; // Slot 5 is Đặc Thù (special equipment)
+      if (charEquipSlot5) {
+        const id = charEquipSlot5._Id;
+        const thuocTinh = account.player._ThuocTinh; // Character element
+
+        // Check if current gem matches the element
+        let gemMatches = false;
+        switch (thuocTinh) {
+          case 1: // Địa
+            gemMatches = id === 23086 || id === 23135;
+            break;
+          case 2: // Thủy
+            gemMatches = id === 23087 || id === 23136;
+            break;
+          case 3: // Hỏa
+            gemMatches = id === 23088 || id === 23137;
+            break;
+          case 4: // Phong
+            gemMatches = id === 23089 || id === 23138;
+            break;
+        }
+
+        // If gem doesn't match element, find and equip correct gem
+        if (!gemMatches) {
+          // First, try to find matching gem directly in bag
+          let gemFound = false;
+          for (const item of account.tuido) {
+            const id2 = item._Id;
+            const stt = item._Stt;
+
+            let shouldEquip = false;
+            switch (id2) {
+              case 23086: // Ngọc NhamQuái (Địa)
+              case 23135: // Alternative Địa gem
+                if (thuocTinh === 1) {
+                  shouldEquip = true;
+                }
+                break;
+              case 23087: // Ngọc ThủyThần (Thủy)
+              case 23136: // Alternative Thủy gem
+                if (thuocTinh === 2) {
+                  shouldEquip = true;
+                }
+                break;
+              case 23088: // NgọcPhụngHoàng (Hỏa)
+              case 23137: // Alternative Hỏa gem
+                if (thuocTinh === 3) {
+                  shouldEquip = true;
+                }
+                break;
+              case 23089: // Ngọc ThanhLong (Phong)
+              case 23138: // Alternative Phong gem
+                if (thuocTinh === 4) {
+                  shouldEquip = true;
+                }
+                break;
+            }
+
+            if (shouldEquip) {
+              // Equip character gem
+              const packet = API.equipItem(stt, null);
+              console.log('packet', packet);
+              if (account.socket.context) {
+                sendPacketWithDelay(account.socket.context, packet, 0);
+                console.log(
+                  `[autoChangeGem] Character: Equipped gem ${id2} from slot ${stt} for element ${thuocTinh} (replacing ${id})`
+                );
+              }
+              gemFound = true;
+              break; // Found and equipped, exit loop
+            }
+          }
+
+          // If gem not found directly, check for bag of gems
+          if (!gemFound) {
+            // Get bag gem ID for this element
+            let bagGemId = 0;
+            switch (thuocTinh) {
+              case 1: // Địa
+                bagGemId = 46293; // Túi bảo cự nham
+                break;
+              case 2: // Thủy
+                bagGemId = 46294; // Túi bảo thiên thủy
+                break;
+              case 3: // Hỏa
+                bagGemId = 46295; // Túi bảo hỏa phụng
+                break;
+              case 4: // Phong
+                bagGemId = 46296; // Túi bảo phi long
+                break;
+            }
+
+            // Find bag of gems in inventory
+            if (bagGemId > 0) {
+              for (const item of account.tuido) {
+                if (item._Id === bagGemId && item._Sl > 0) {
+                  // Use/open the bag
+                  // eslint-disable-next-line react-hooks/rules-of-hooks
+                  const usePacket = API.useItem(item._Stt);
+                  if (account.socket.context) {
+                    // Set flag to wait for gems
+                    account.pendingGemChange = {
+                      type: 'char',
+                      element: thuocTinh
+                    };
+                    sendPacketWithDelay(account.socket.context, API.xorWithAD(usePacket), 0);
+                    console.log(
+                      `[autoChangeGem] Character: Using bag ${bagGemId} from slot ${item._Stt} for element ${thuocTinh}`
+                    );
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Check pet gem
+    if (account.battleSkillConfig?.changeGemPet && account.petBattle) {
+      const petIndex = account.petBattle - 1; // Convert to 0-based index
+      const pet = account.pets[petIndex];
+
+      if (pet) {
+        const id3 = pet._dacthu; // Pet equipment slot 5 (Đặc Thù)
+        const id4 = pet._Id; // Pet NPC ID
+
+        // Get pet element from DATA_BATTLE_PET
+        const findNPC = DATA_BATTLE_PET.find((e) => e[0] === id4);
+        if (findNPC) {
+          const elementString = findNPC[2]; // Element as string: "Địa", "Thủy", "Hỏa", "Phong"
+          let thuoctinh = 0;
+          switch (elementString) {
+            case 'Địa':
+              thuoctinh = 1;
+              break;
+            case 'Thủy':
+              thuoctinh = 2;
+              break;
+            case 'Hỏa':
+              thuoctinh = 3;
+              break;
+            case 'Phong':
+              thuoctinh = 4;
+              break;
+          }
+
+          // Check if current gem matches the pet element
+          let gemMatches = false;
+          switch (thuoctinh) {
+            case 1: // Địa
+              gemMatches = id3 === 23086 || id3 === 23135;
+              break;
+            case 2: // Thủy
+              gemMatches = id3 === 23087 || id3 === 23136;
+              break;
+            case 3: // Hỏa
+              gemMatches = id3 === 23088 || id3 === 23137;
+              break;
+            case 4: // Phong
+              gemMatches = id3 === 23089 || id3 === 23138;
+              break;
+          }
+
+          // If gem doesn't match element, find and equip correct gem
+          if (!gemMatches) {
+            // First, try to find matching gem directly in bag
+            let gemFound = false;
+            for (const item of account.tuido) {
+              const id5 = item._Id;
+              const stt2 = item._Stt;
+
+              let shouldEquip = false;
+              switch (id5) {
+                case 23086: // Ngọc NhamQuái (Địa)
+                case 23135: // Alternative Địa gem
+                  if (thuoctinh === 1) {
+                    shouldEquip = true;
+                  }
+                  break;
+                case 23087: // Ngọc ThủyThần (Thủy)
+                case 23136: // Alternative Thủy gem
+                  if (thuoctinh === 2) {
+                    shouldEquip = true;
+                  }
+                  break;
+                case 23088: // NgọcPhụngHoàng (Hỏa)
+                case 23137: // Alternative Hỏa gem
+                  if (thuoctinh === 3) {
+                    shouldEquip = true;
+                  }
+                  break;
+                case 23089: // Ngọc ThanhLong (Phong)
+                case 23138: // Alternative Phong gem
+                  if (thuoctinh === 4) {
+                    shouldEquip = true;
+                  }
+                  break;
+              }
+
+              if (shouldEquip) {
+                // Equip pet gem (petIndex is 0-based, but we need 1-based for equipItem)
+                const packet = API.equipItem(stt2, account.petBattle);
+                if (account.socket.context) {
+                  sendPacketWithDelay(account.socket.context, packet, 0);
+                  console.log(
+                    `[autoChangeGem] Pet: Equipped gem ${id5} from slot ${stt2} for pet element ${thuoctinh} (replacing ${id3})`
+                  );
+                }
+                gemFound = true;
+                break; // Found and equipped, exit loop
+              }
+            }
+
+            // If gem not found directly, check for bag of gems
+            if (!gemFound) {
+              // Get bag gem ID for this element
+              let bagGemId = 0;
+              switch (thuoctinh) {
+                case 1: // Địa
+                  bagGemId = 46293; // Túi bảo cự nham
+                  break;
+                case 2: // Thủy
+                  bagGemId = 46294; // Túi bảo thiên thủy
+                  break;
+                case 3: // Hỏa
+                  bagGemId = 46295; // Túi bảo hỏa phụng
+                  break;
+                case 4: // Phong
+                  bagGemId = 46296; // Túi bảo phi long
+                  break;
+              }
+
+              // Find bag of gems in inventory
+              if (bagGemId > 0) {
+                for (const item of account.tuido) {
+                  if (item._Id === bagGemId && item._Sl > 0) {
+                    // Use/open the bag
+                    // eslint-disable-next-line react-hooks/rules-of-hooks
+                    const usePacket = API.useItem(item._Stt);
+                    if (account.socket.context) {
+                      // Set flag to wait for gems
+                      account.pendingGemChange = {
+                        type: 'pet',
+                        element: thuoctinh
+                      };
+                      sendPacketWithDelay(account.socket.context, API.xorWithAD(usePacket), 0);
+                      console.log(
+                        `[autoChangeGem] Pet: Using bag ${bagGemId} from slot ${item._Stt} for element ${thuoctinh}`
+                      );
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[autoChangeGem] Error:', error);
+  }
 }

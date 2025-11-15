@@ -51,6 +51,20 @@ export function AccountList({
     }
     return 'Connecting...';
   };
+  const getElementColor = (ele: number): string => {
+    //1-Dia //2-Thuy //3-Hoa//4-Phong
+    switch (ele) {
+      case 1:
+        return 'Địa';
+      case 2:
+        return 'Thủy';
+      case 3:
+        return 'Hỏa';
+      case 4:
+        return 'Phong';
+    }
+    return 'Không';
+  };
 
   const getStatusColor = (player: Player): string => {
     if (player._PlayerOnline === 1) {
@@ -79,11 +93,8 @@ export function AccountList({
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-900 truncate">
-                    {player._Name || `Player ${player._Id}`}
+                    {player._Name || `Player ${player._Id}`} - {getElementColor(player._ThuocTinh)}
                   </div>
-                  {player._Lv > 0 && (
-                    <div className="text-xs text-gray-500">Level {player._Lv}</div>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span

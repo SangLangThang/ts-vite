@@ -58,6 +58,11 @@ export interface ClientBot {
   petBattle?: number;
   currentEvent?: string; // Current event the client is running (e.g., 'haitac', 'gahaitac', etc.)
   haitacIntervalId?: NodeJS.Timeout; // Interval ID for Hải Tặc walking loop
+  charListSkill?: number[]; // Character skill list
+  pendingGemChange?: {
+    type: 'char' | 'pet';
+    element: number;
+  }; // Track when waiting for gems from bag
 }
 
 export interface ClientSocket {
